@@ -1,0 +1,11 @@
+{
+  "name": "Marisquería OS",
+  "short_name": "Marisquería",
+  "description": "Operación sincronizada para restaurante",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f7f3ea",
+  "theme_color": "#063b4b",
+  "lang": "es-MX",
+  "orientation": "any"
+}
