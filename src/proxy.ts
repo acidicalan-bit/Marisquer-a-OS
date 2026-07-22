@@ -12,6 +12,7 @@ export const config = {
     "/admin/:path*",
     "/kitchen/:path*",
     "/host/:path*",
+    "/account/:path*",
     "/api/assistant",
     "/login",
   ],

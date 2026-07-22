@@ -15,6 +15,9 @@ test("muestra un acceso real o instalación pendiente, nunca datos simulados", a
     await expect(loginHeading).toBeVisible();
     await expect(page.getByLabel("Correo")).toBeVisible();
     await expect(page.getByLabel("Contraseña")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Olvidé mi contraseña" }),
+    ).toBeVisible();
     return;
   }
 
