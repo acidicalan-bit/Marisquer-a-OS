@@ -1,65 +1,84 @@
 # Marisquería OS
 
-Sistema operativo web para una marisquería en Ciudad de México. Esta primera fase entrega la base productiva: Next.js, Supabase Auth/PostgreSQL/Realtime, separación por organización y sucursal, roles, menú, mesas, migraciones, seed y panel operativo inicial.
+Sistema operativo premium para restaurante: operación de meseros, cocina y anfitrión; consola administrativa; menú con imágenes; inventario; mesas; usuarios; turnos; inteligencia de ventas; marca; copiloto de IA y bandeja omnicanal.
 
-## Requisitos
+El repositorio y el proyecto Supabase son exclusivos de Marisquería OS. No comparten configuración, base de datos ni despliegue con Virro u otro proyecto.
 
-- Node.js 20.9 o superior.
-- npm 11 o superior.
-- Un proyecto Supabase **exclusivo para Marisquería OS**.
-- Supabase CLI para aplicar migraciones localmente o acceso al SQL Editor del proyecto correcto.
+## Desarrollo
 
-## Inicio rápido
-
-1. Copia `.env.example` a `.env.local`.
-2. Completa `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` del proyecto de Marisquería OS.
-3. Ejecuta la migración `supabase/migrations/202607220001_foundation.sql`.
-4. Ejecuta `supabase/seed.sql` en desarrollo.
-5. Instala y levanta la aplicación:
+Requiere Node.js 20.9+, npm 11+, Java 21 y Android SDK para generar APK.
 
 ```bash
 npm install
 npm run dev
 ```
 
-La aplicación no usa datos simulados. Sin configuración válida muestra un estado de instalación pendiente.
+Las migraciones se aplican en orden desde `supabase/migrations`; `supabase/seed.sql` carga la sucursal inicial. La aplicación nunca sustituye una conexión ausente con datos simulados.
 
-## Comandos
+## Verificación
 
 ```bash
-npm run dev
-npm run lint
+npm run format:check
 npm run typecheck
+npm run lint
 npm test
-npm run test:coverage
 npm run test:e2e
 npm run build
+npm audit
 ```
+
+## Instaladores
+
+### Windows
+
+```bash
+npm run desktop:pack
+```
+
+Genera `dist-installers/Marisqueria-OS-Admin-Setup-0.1.0.exe`. La aplicación inicia el servidor local en `0.0.0.0:3210`; la consola de la PC usa `http://127.0.0.1:3210`.
+
+### Android
+
+```powershell
+npm run mobile:sync
+cd android
+.\gradlew.bat assembleAdminDebug assembleServiceDebug assembleKitchenDebug assembleHostDebug
+```
+
+Los cuatro sabores tienen paquetes y rutas independientes:
+
+- `mx.marisqueria.os.admin` → `/admin`
+- `mx.marisqueria.os.service` → `/dashboard`
+- `mx.marisqueria.os.kitchen` → `/kitchen`
+- `mx.marisqueria.os.host` → `/host`
+
+Al abrir una APK se solicita la dirección de la PC, por ejemplo `http://192.168.1.20:3210`. Ambos dispositivos deben estar en la misma red y el firewall debe permitir el puerto 3210. Para una operación fuera de una LAN controlada se requiere HTTPS; no expongas directamente ese puerto a Internet.
 
 ## Variables
 
-| Variable                               | Ámbito                        | Uso                                |
-| -------------------------------------- | ----------------------------- | ---------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Cliente/servidor              | URL del proyecto exclusivo         |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Cliente/servidor              | Llave publicable protegida por RLS |
-| `SUPABASE_SERVICE_ROLE_KEY`            | Sólo scripts locales/servidor | Seed de usuarios; jamás se expone  |
-| `NEXT_PUBLIC_APP_URL`                  | Público                       | URL canónica y callbacks           |
+| Variable                               | Ámbito        | Uso                                                  |
+| -------------------------------------- | ------------- | ---------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Público       | URL del proyecto exclusivo                           |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Público       | Llave publicable protegida por RLS                   |
+| `SUPABASE_SECRET_KEY`                  | Sólo servidor | Altas, bajas y cambio de contraseña en Supabase Auth |
+| `OPENAI_API_KEY`                       | Sólo servidor | Copiloto Mar y generación de logos                   |
+| `OPENAI_ASSISTANT_MODEL`               | Sólo servidor | Modelo del copiloto                                  |
+| `OPENAI_IMAGE_MODEL`                   | Sólo servidor | Modelo de imagen                                     |
+| `META_APP_SECRET`                      | Sólo servidor | Firma de webhooks Meta                               |
+| `META_VERIFY_TOKEN`                    | Sólo servidor | Verificación inicial del webhook                     |
+| `WHATSAPP_ACCESS_TOKEN`                | Sólo servidor | Envío por WhatsApp Cloud API                         |
+| `WHATSAPP_PHONE_NUMBER_ID`             | Sólo servidor | Número emisor de WhatsApp                            |
 
-## Estructura
-
-- `src/app`: rutas App Router y acciones de servidor.
-- `src/components`: interfaz y proveedores.
-- `src/lib/supabase`: clientes SSR/browser y sesión.
-- `supabase/migrations`: esquema versionado, RLS y funciones.
-- `supabase/seed.sql`: sucursal, roles, mesas, menú e inventario demostrativo.
-- `docs`: arquitectura, decisiones y plan por fases.
+Los secretos no se incrustan en el instalador. En Windows deben configurarse como variables de entorno del usuario o de la máquina antes de iniciar la app; después hay que cerrarla y abrirla otra vez. Nunca pegues secretos en tickets, commits o chats.
 
 ## Seguridad
 
-Las consultas usan la llave publicable y dependen de RLS. La llave `service_role` sólo se admite en procesos administrativos locales. Los PIN se verifican con `crypt()`/bcrypt en PostgreSQL y nunca se almacenan ni registran en texto plano. Los importes se guardan en centavos como enteros.
+- RLS está habilitado en todas las tablas públicas y limita organización, sucursal y permiso.
+- `shifts.manage` pertenece sólo al rol administrador y existe como máximo un turno abierto por sucursal.
+- Contraseñas y altas Auth requieren la clave secreta exclusivamente en el proceso servidor.
+- Los webhooks Meta validan `x-hub-signature-256` antes de escribir datos.
+- Importes monetarios se guardan en centavos enteros; inventario usa movimientos atómicos.
+- La recomendación comercial devuelve cero si no hay ventas y reduce la confianza cuando falta receta/costo.
+- El instalador Windows necesita un certificado comercial de firma de código para eliminar advertencias de SmartScreen. Las APK actuales usan firma de depuración para instalación directa; una publicación en Play Store necesita un keystore de producción custodiado por el propietario.
 
-## Estado de la fase 1
-
-Incluido: estructura, modelo de datos base, RLS, seed, autenticación por correo, selección contextual de sucursal, panel de mesas y menú con datos reales. El acceso rápido por PIN queda modelado de forma segura y se completará con una función de autenticación privilegiada antes del piloto; no se emiten sesiones desde el navegador a partir de un PIN.
-
-Consulta [docs/technical-plan.md](docs/technical-plan.md) y [docs/architecture.md](docs/architecture.md).
+Consulta [docs/architecture.md](docs/architecture.md) y [docs/technical-plan.md](docs/technical-plan.md).

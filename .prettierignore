@@ -4,3 +4,11 @@ coverage
 playwright-report
 test-results
 package-lock.json
+android/.gradle
+android/build
+android/app/build
+android/capacitor-cordova-android-plugins/build
+dist-installers
+electron/runtime-config.json
+.desktop-build
+tmp

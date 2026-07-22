@@ -1,0 +1,9 @@
+{
+  "appId": "mx.marisqueria.os.kitchen",
+  "appName": "Marisquería OS Cocina",
+  "webDir": "mobile-shell",
+  "server": {
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  }
+}

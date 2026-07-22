@@ -21,6 +21,10 @@
 
 # production
 /build
+/dist-installers
+/electron/runtime-config.json
+/.desktop-build
+/tmp
 
 # misc
 .DS_Store

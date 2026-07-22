@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#071f29" />
+    <title>Marisquería OS</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      background: radial-gradient(circle at 20% 0, #0d5662, #071f29 45%);
+      color: white;
+      font-family: system-ui;
+      display: grid;
+      min-height: 100vh;
+      place-items: center;
+      padding: 24px;
+      box-sizing: border-box;
+    "
+  >
+    <main
+      style="
+        width: min(100%, 420px);
+        border: 1px solid #ffffff20;
+        background: #ffffff0d;
+        border-radius: 28px;
+        padding: 28px;
+        box-sizing: border-box;
+        box-shadow: 0 28px 80px #0005;
+        backdrop-filter: blur(18px);
+      "
+    >
+      <div
+        style="
+          width: 52px;
+          height: 52px;
+          border-radius: 16px;
+          background: #54e1cf;
+          color: #071f29;
+          display: grid;
+          place-items: center;
+          font-size: 26px;
+        "
+      >
+        ◈
+      </div>
+      <p
+        style="
+          margin: 28px 0 8px;
+          color: #6ee7d8;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+        "
+      >
+        Configuración inicial
+      </p>
+      <h1 style="margin: 0; font-size: 30px; letter-spacing: -0.03em">
+        Conecta con la PC principal.
+      </h1>
+      <p style="color: #ffffff99; line-height: 1.6">
+        Escribe la dirección que muestra Marisquería OS Admin. Se guardará sólo
+        en este dispositivo.
+      </p>
+      <form id="connection-form" style="margin-top: 24px">
+        <label
+          for="server"
+          style="display: block; font-size: 13px; margin-bottom: 8px"
+          >Dirección del servidor</label
+        >
+        <input
+          id="server"
+          inputmode="url"
+          autocomplete="url"
+          placeholder="http://192.168.1.100:3210"
+          required
+          style="
+            width: 100%;
+            height: 48px;
+            border: 1px solid #ffffff25;
+            border-radius: 14px;
+            background: #ffffff12;
+            color: white;
+            padding: 0 14px;
+            box-sizing: border-box;
+            font-size: 16px;
+            outline: none;
+          "
+        />
+        <p
+          id="error"
+          role="alert"
+          style="min-height: 20px; color: #ffb4a8; font-size: 13px"
+        ></p>
+        <button
+          type="submit"
+          style="
+            width: 100%;
+            height: 48px;
+            border: 0;
+            border-radius: 14px;
+            background: #54e1cf;
+            color: #071f29;
+            font-weight: 700;
+            font-size: 15px;
+          "
+        >
+          Conectar
+        </button>
+      </form>
+    </main>
+    <script>
+      const form = document.querySelector("#connection-form");
+      const input = document.querySelector("#server");
+      const error = document.querySelector("#error");
+      const rolePath = {
+        admin: "/admin",
+        service: "/dashboard",
+        kitchen: "/kitchen",
+        host: "/host",
+      };
+      async function role() {
+        try {
+          return (await (await fetch("./app-role.json")).json()).role;
+        } catch {
+          return "admin";
+        }
+      }
+      async function connect(raw) {
+        try {
+          const url = new URL(raw.includes("://") ? raw : `http://${raw}`);
+          const privateHost =
+            /^(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
+              url.hostname,
+            );
+          if (
+            url.protocol !== "https:" &&
+            !(url.protocol === "http:" && privateHost)
+          )
+            throw new Error(
+              "Usa HTTPS o una dirección privada de la red local.",
+            );
+          const base = url.origin;
+          localStorage.setItem("marisqueria_pc_url", base);
+          window.location.replace(base + rolePath[await role()]);
+        } catch (reason) {
+          error.textContent =
+            reason instanceof Error ? reason.message : "Dirección inválida.";
+        }
+      }
+      const saved = localStorage.getItem("marisqueria_pc_url");
+      if (saved) void connect(saved);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        void connect(input.value.trim());
+      });
+    </script>
+  </body>
+</html>
