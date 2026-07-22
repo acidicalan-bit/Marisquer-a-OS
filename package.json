@@ -1,7 +1,10 @@
 {
   "name": "marisqueria",
   "version": "0.1.0",
+  "description": "Sistema operativo premium para administración de restaurantes y marisquerías.",
+  "author": "Marisquería OS",
   "private": true,
+  "main": "electron/main.mjs",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,9 +16,43 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "mobile:add": "cap add android",
+    "mobile:sync": "cap sync android",
+    "desktop:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "desktop:prepare": "npm run build && node scripts/prepare-desktop.mjs",
+    "desktop:pack": "npm run desktop:prepare && electron-builder --projectDir .desktop-build --win nsis"
+  },
+  "build": {
+    "appId": "mx.marisqueria.os.admin.desktop",
+    "productName": "Marisquería OS Admin",
+    "directories": {
+      "app": ".desktop-build",
+      "output": "dist-installers"
+    },
+    "files": [
+      "electron/**/*",
+      ".next/standalone/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      ".next/standalone/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "artifactName": "Marisqueria-OS-Admin-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
     "@hookform/resolvers": "^5.4.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.8",
@@ -27,6 +64,7 @@
     "idb-keyval": "^6.3.0",
     "lucide-react": "^1.25.0",
     "next": "16.2.11",
+    "openai": "^6.48.0",
     "postcss": "^8.5.21",
     "radix-ui": "^1.6.4",
     "react": "19.2.4",
@@ -40,6 +78,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.2",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.0",
@@ -49,6 +88,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.10",
+    "concurrently": "^9.2.4",
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
     "eslint-config-prettier": "^10.1.8",
@@ -57,7 +99,8 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wait-on": "^9.1.0"
   },
   "overrides": {
     "postcss": "$postcss",

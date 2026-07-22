@@ -1,0 +1,9 @@
+{
+  "appId": "mx.marisqueria.os.service",
+  "appName": "Marisquería OS Meseros",
+  "webDir": "mobile-shell",
+  "server": {
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  }
+}

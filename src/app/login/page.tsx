@@ -11,12 +11,12 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { getPublicEnv } from "@/lib/env";
 import { createOptionalSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Acceso" };
+export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   const configured = Boolean(getPublicEnv());
@@ -56,7 +56,9 @@ export default async function LoginPage() {
             <span className="bg-secondary text-secondary-foreground grid size-11 place-items-center rounded-xl">
               <LockKeyhole className="size-5" />
             </span>
-            <CardTitle className="text-3xl">Bienvenido</CardTitle>
+            <h2 className="text-3xl leading-none font-semibold tracking-tight">
+              Bienvenido
+            </h2>
             <CardDescription>
               Ingresa con el correo asignado por administración.
             </CardDescription>

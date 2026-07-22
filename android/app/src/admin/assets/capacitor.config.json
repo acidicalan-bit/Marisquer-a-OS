@@ -1,0 +1,9 @@
+{
+  "appId": "mx.marisqueria.os.admin",
+  "appName": "Marisquería OS Admin",
+  "webDir": "mobile-shell",
+  "server": {
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  }
+}

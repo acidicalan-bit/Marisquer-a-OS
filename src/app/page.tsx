@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPublicEnv } from "@/lib/env";
 import { createOptionalSupabaseServerClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   if (getPublicEnv()) {
     const supabase = await createOptionalSupabaseServerClient();

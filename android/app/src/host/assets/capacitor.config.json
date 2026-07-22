@@ -1,0 +1,9 @@
+{
+  "appId": "mx.marisqueria.os.host",
+  "appName": "Marisquería OS Host",
+  "webDir": "mobile-shell",
+  "server": {
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  }
+}
