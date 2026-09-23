@@ -12,3 +12,6 @@ dist-installers
 electron/runtime-config.json
 .desktop-build
 tmp
+supabase/.temp
+android/app/src/*/assets/capacitor.config.json
+android/app/src/*/assets/capacitor.plugins.json

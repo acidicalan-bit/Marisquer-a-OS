@@ -2,6 +2,10 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
+import {
+  readTextBody,
+  RequestBodyTooLargeError,
+} from "@/lib/http/request-body";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
@@ -26,7 +30,15 @@ export async function POST(request: Request) {
       { status: 503 },
     );
   }
-  const rawBody = await request.text();
+  let rawBody: string;
+  try {
+    rawBody = await readTextBody(request, 1024 * 1024);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Solicitud demasiado grande" },
+      { status: error instanceof RequestBodyTooLargeError ? 413 : 400 },
+    );
+  }
   const suppliedSignature = request.headers.get("x-hub-signature-256") ?? "";
   const expectedSignature = `sha256=${createHmac("sha256", process.env.META_APP_SECRET).update(rawBody).digest("hex")}`;
   const supplied = Buffer.from(suppliedSignature);
@@ -38,7 +50,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Firma inválida" }, { status: 401 });
   }
 
-  const payload = JSON.parse(rawBody) as MetaWebhook;
+  let payload: MetaWebhook;
+  try {
+    payload = JSON.parse(rawBody) as MetaWebhook;
+  } catch {
+    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
+  }
   const admin = createSupabaseAdminClient();
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {

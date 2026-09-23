@@ -4,6 +4,12 @@ import path from "node:path";
 const root = process.cwd();
 const standalone = path.join(root, ".next", "standalone");
 const stage = path.join(root, ".desktop-build");
+const electronPackage = JSON.parse(
+  await readFile(
+    path.join(root, "node_modules", "electron", "package.json"),
+    "utf8",
+  ),
+);
 await cp(
   path.join(root, ".next", "static"),
   path.join(standalone, ".next", "static"),
@@ -64,11 +70,11 @@ await writeFile(
       main: "electron/main.mjs",
       description:
         "Sistema operativo premium para administración de restaurantes y marisquerías.",
-      author: "Marisquería OS",
+      author: "Barlovento",
       build: {
-        electronVersion: "43.2.0",
+        electronVersion: electronPackage.version,
         appId: "mx.marisqueria.os.admin.desktop",
-        productName: "Marisquería OS Admin",
+        productName: "Barlovento Admin",
         directories: { output: "../dist-installers" },
         files: ["electron/**/*", ".next/standalone/**/*", "package.json"],
         asar: true,
@@ -76,7 +82,7 @@ await writeFile(
         win: {
           target: "nsis",
           icon: "build/icon.ico",
-          artifactName: "Marisqueria-OS-Admin-Setup-${version}.${ext}",
+          artifactName: "Barlovento-Admin-Setup-${version}.${ext}",
         },
         nsis: {
           oneClick: false,

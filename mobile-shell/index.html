@@ -4,123 +4,345 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071f29" />
-    <title>Marisquería OS</title>
-  </head>
-  <body
-    style="
-      margin: 0;
-      background: radial-gradient(circle at 20% 0, #0d5662, #071f29 45%);
-      color: white;
-      font-family: system-ui;
-      display: grid;
-      min-height: 100vh;
-      place-items: center;
-      padding: 24px;
-      box-sizing: border-box;
-    "
-  >
-    <main
-      style="
-        width: min(100%, 420px);
-        border: 1px solid #ffffff20;
-        background: #ffffff0d;
-        border-radius: 28px;
-        padding: 28px;
+    <title>Barlovento</title>
+    <style>
+      * {
         box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #f5f2eb;
+        color: #082f36;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button {
+        min-height: 44px;
+        cursor: pointer;
+      }
+      .setup {
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+        padding: 24px;
+        background: radial-gradient(circle at 20% 0, #0d5662, #071f29 45%);
+        color: white;
+      }
+      .setup-card {
+        width: min(100%, 430px);
+        border: 1px solid #ffffff20;
+        border-radius: 28px;
+        background: #ffffff0d;
+        padding: 28px;
         box-shadow: 0 28px 80px #0005;
         backdrop-filter: blur(18px);
-      "
-    >
-      <div
-        style="
-          width: 52px;
-          height: 52px;
-          border-radius: 16px;
-          background: #54e1cf;
-          color: #071f29;
-          display: grid;
-          place-items: center;
-          font-size: 26px;
-        "
-      >
-        ◈
-      </div>
-      <p
-        style="
-          margin: 28px 0 8px;
-          color: #6ee7d8;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-        "
-      >
-        Configuración inicial
-      </p>
-      <h1 style="margin: 0; font-size: 30px; letter-spacing: -0.03em">
-        Conecta con la PC principal.
-      </h1>
-      <p style="color: #ffffff99; line-height: 1.6">
-        Escribe la dirección que muestra Marisquería OS Admin. Se guardará sólo
-        en este dispositivo.
-      </p>
-      <form id="connection-form" style="margin-top: 24px">
-        <label
-          for="server"
-          style="display: block; font-size: 13px; margin-bottom: 8px"
-          >Dirección del servidor</label
-        >
-        <input
-          id="server"
-          inputmode="url"
-          autocomplete="url"
-          placeholder="http://192.168.1.100:3210"
-          required
-          style="
-            width: 100%;
-            height: 48px;
-            border: 1px solid #ffffff25;
-            border-radius: 14px;
-            background: #ffffff12;
-            color: white;
-            padding: 0 14px;
-            box-sizing: border-box;
-            font-size: 16px;
-            outline: none;
-          "
-        />
-        <p
-          id="error"
-          role="alert"
-          style="min-height: 20px; color: #ffb4a8; font-size: 13px"
-        ></p>
-        <button
-          type="submit"
-          style="
-            width: 100%;
-            height: 48px;
-            border: 0;
-            border-radius: 14px;
-            background: #54e1cf;
-            color: #071f29;
-            font-weight: 700;
-            font-size: 15px;
-          "
-        >
-          Conectar
-        </button>
-      </form>
-    </main>
+      }
+      .mark {
+        display: grid;
+        width: 52px;
+        height: 52px;
+        place-items: center;
+        border-radius: 16px;
+        background: #54e1cf;
+        color: #071f29;
+        font-size: 26px;
+      }
+      .eyebrow {
+        margin: 24px 0 8px;
+        color: #5eead4;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.17em;
+        text-transform: uppercase;
+      }
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+      .muted {
+        color: #ffffff99;
+        line-height: 1.55;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        min-height: 48px;
+        border: 1px solid #ffffff25;
+        border-radius: 14px;
+        background: #ffffff12;
+        color: inherit;
+        padding: 0 14px;
+        outline: none;
+      }
+      .primary {
+        width: 100%;
+        border: 0;
+        border-radius: 14px;
+        background: #54e1cf;
+        color: #071f29;
+        font-weight: 800;
+      }
+      .status {
+        min-height: 20px;
+        color: #99f6e4;
+        font-size: 13px;
+      }
+      .error {
+        min-height: 20px;
+        color: #ffb4a8;
+        font-size: 13px;
+      }
+      .offline {
+        display: none;
+        min-height: 100vh;
+      }
+      .offline-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 72px;
+        padding: 12px 16px;
+        background: #072f38f5;
+        color: white;
+        box-shadow: 0 8px 28px #072f3822;
+      }
+      .offline-header .mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+        font-size: 20px;
+      }
+      .grow {
+        flex: 1;
+      }
+      .badge {
+        display: inline-flex;
+        min-height: 28px;
+        align-items: center;
+        border-radius: 999px;
+        background: #f59e0b22;
+        color: #fef3c7;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .retry {
+        border: 1px solid #ffffff33;
+        border-radius: 12px;
+        background: #ffffff10;
+        color: white;
+        padding: 0 12px;
+        font-weight: 700;
+      }
+      .content {
+        width: min(100%, 980px);
+        margin: 0 auto;
+        padding: 20px 16px 100px;
+      }
+      .notice {
+        margin-bottom: 18px;
+        border: 1px solid #f3d38b;
+        border-radius: 18px;
+        background: #fff8e7;
+        padding: 14px 16px;
+        color: #75520d;
+        line-height: 1.45;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .card {
+        border: 1px solid #dce5e3;
+        border-radius: 22px;
+        background: white;
+        padding: 16px;
+        box-shadow: 0 12px 35px #082f360b;
+      }
+      .card h3 {
+        margin: 0 0 6px;
+      }
+      .card p {
+        margin-bottom: 10px;
+        color: #64748b;
+        font-size: 14px;
+      }
+      .table-button {
+        width: 100%;
+        border: 1px solid #dce5e3;
+        border-radius: 18px;
+        background: white;
+        color: #082f36;
+        padding: 14px;
+        text-align: left;
+      }
+      .table-button.selected {
+        border-color: #0f766e;
+        background: #e7faf6;
+      }
+      .action {
+        width: 100%;
+        border: 0;
+        border-radius: 13px;
+        background: #0f766e;
+        color: white;
+        padding: 0 14px;
+        font-weight: 800;
+      }
+      .secondary {
+        border: 1px solid #cbd5e1;
+        background: white;
+        color: #0f4c56;
+      }
+      .menu-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid #edf1f0;
+        padding: 13px 0;
+      }
+      .counter {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .counter button {
+        width: 44px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        background: white;
+        color: #0f4c56;
+        font-size: 20px;
+      }
+      .full {
+        grid-column: 1 / -1;
+      }
+      @media (min-width: 700px) {
+        .grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="setup" id="setup">
+      <main class="setup-card">
+        <div class="mark">◈</div>
+        <p class="eyebrow">Conexión inteligente</p>
+        <h1>Barlovento</h1>
+        <p class="muted">
+          Si la PC está disponible entrarás al sistema central. Si está apagada,
+          la APK abrirá el último estado guardado y conservará tus cambios.
+        </p>
+        <form id="connection-form">
+          <label for="server">Dirección de la PC principal</label>
+          <input
+            id="server"
+            inputmode="url"
+            autocomplete="url"
+            placeholder="http://192.168.1.100:3210"
+            value="http://192.168.0.9:3210"
+            required
+          />
+          <p id="status" class="status" role="status" aria-live="polite"></p>
+          <p id="error" class="error" role="alert"></p>
+          <button class="primary" type="submit">Conectar</button>
+        </form>
+      </main>
+    </section>
+
+    <section class="offline" id="offline">
+      <header class="offline-header">
+        <div class="mark">◈</div>
+        <div class="grow">
+          <strong id="offline-title">Modo local</strong>
+          <div
+            style="font-size: 12px; color: #ffffff99"
+            id="offline-branch"
+          ></div>
+        </div>
+        <span class="badge" id="queue-badge">Sin conexión</span>
+        <button class="retry" id="retry" type="button">Reconectar</button>
+      </header>
+      <main class="content">
+        <div class="notice">
+          Trabajas con la última copia segura de esta sucursal. Tus acciones se
+          sincronizarán una sola vez cuando vuelva la PC.
+        </div>
+        <div id="offline-content"></div>
+      </main>
+    </section>
+
     <script>
       const form = document.querySelector("#connection-form");
       const input = document.querySelector("#server");
       const error = document.querySelector("#error");
+      const status = document.querySelector("#status");
+      const submit = form.querySelector("button[type='submit']");
+      const setup = document.querySelector("#setup");
+      const offline = document.querySelector("#offline");
+      const offlineContent = document.querySelector("#offline-content");
+      const queueBadge = document.querySelector("#queue-badge");
+      const defaultServer = "http://192.168.0.9:3210";
+      const SNAPSHOT_KEY = "marisqueria_offline_snapshot_v1";
+      const QUEUE_KEY = "marisqueria_offline_queue_v1";
+      const SERVER_KEY = "marisqueria_pc_url";
       const rolePath = {
         admin: "/admin",
         service: "/dashboard",
         kitchen: "/kitchen",
         host: "/host",
       };
+      let currentRole = "admin";
+      let snapshot = null;
+      let queue = [];
+      let cart = {};
+      let selectedTableId = null;
+
+      function preferences() {
+        return window.Capacitor?.Plugins?.Preferences;
+      }
+      async function getValue(key) {
+        const plugin = preferences();
+        if (plugin) return (await plugin.get({ key })).value;
+        return localStorage.getItem(key);
+      }
+      async function setValue(key, value) {
+        const plugin = preferences();
+        if (plugin) return plugin.set({ key, value });
+        localStorage.setItem(key, value);
+      }
+      async function removeValue(key) {
+        const plugin = preferences();
+        if (plugin) return plugin.remove({ key });
+        localStorage.removeItem(key);
+      }
       async function role() {
         try {
           return (await (await fetch("./app-role.json")).json()).role;
@@ -128,34 +350,328 @@
           return "admin";
         }
       }
-      async function connect(raw) {
+      function normalize(raw) {
+        const url = new URL(raw.includes("://") ? raw : `http://${raw}`);
+        const privateHost =
+          /^(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
+            url.hostname,
+          );
+        if (
+          url.protocol !== "https:" &&
+          !(url.protocol === "http:" && privateHost)
+        )
+          throw new Error("Usa HTTPS o una dirección privada de la red local.");
+        return url.origin;
+      }
+      async function verify(base) {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 5000);
         try {
-          const url = new URL(raw.includes("://") ? raw : `http://${raw}`);
-          const privateHost =
-            /^(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
-              url.hostname,
-            );
-          if (
-            url.protocol !== "https:" &&
-            !(url.protocol === "http:" && privateHost)
-          )
-            throw new Error(
-              "Usa HTTPS o una dirección privada de la red local.",
-            );
-          const base = url.origin;
-          localStorage.setItem("marisqueria_pc_url", base);
-          window.location.replace(base + rolePath[await role()]);
-        } catch (reason) {
-          error.textContent =
-            reason instanceof Error ? reason.message : "Dirección inválida.";
+          const response = await fetch(`${base}/api/health`, {
+            cache: "no-store",
+            signal: controller.signal,
+          });
+          const result = await response.json();
+          return (
+            response.ok &&
+            result.ok === true &&
+            result.service === "marisqueria-os"
+          );
+        } catch {
+          return false;
+        } finally {
+          window.clearTimeout(timeout);
         }
       }
-      const saved = localStorage.getItem("marisqueria_pc_url");
-      if (saved) void connect(saved);
+      function money(cents) {
+        return new Intl.NumberFormat("es-MX", {
+          style: "currency",
+          currency: "MXN",
+        }).format(cents / 100);
+      }
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+      async function saveState() {
+        await Promise.all([
+          setValue(SNAPSHOT_KEY, JSON.stringify(snapshot)),
+          setValue(QUEUE_KEY, JSON.stringify(queue)),
+        ]);
+        queueBadge.textContent = `${queue.length} pendiente${queue.length === 1 ? "" : "s"}`;
+      }
+      async function enqueue(type, entityId, baseVersion, payload) {
+        queue.push({
+          id: crypto.randomUUID(),
+          userId: snapshot.user.id,
+          branchId: snapshot.user.branchId,
+          type,
+          entityId,
+          baseVersion,
+          occurredAt: new Date().toISOString(),
+          payload,
+        });
+        await saveState();
+      }
+      function tableStatus(statusValue) {
+        const labels = {
+          free: "Disponible",
+          reserved: "Reservada",
+          occupied: "Ocupada",
+          check_requested: "Pide cuenta",
+          paying: "Pagando",
+          needs_cleaning: "Por limpiar",
+          blocked: "Bloqueada",
+        };
+        return labels[statusValue] || statusValue;
+      }
+      function renderAdmin() {
+        offlineContent.innerHTML = `
+          <div class="grid">
+            <article class="card"><h3>${snapshot.tables.length}</h3><p>mesas guardadas</p></article>
+            <article class="card"><h3>${snapshot.menu.filter((item) => item.available).length}</h3><p>productos disponibles</p></article>
+            <article class="card"><h3>${snapshot.kitchenItems.length}</h3><p>partidas activas</p></article>
+            <article class="card full">
+              <h3>Administración protegida</h3>
+              <p>Usuarios, contraseñas, caja, precios e inventario requieren conexión para evitar conflictos sensibles. La consulta local permanece disponible.</p>
+            </article>
+          </div>`;
+      }
+      function renderHost() {
+        offlineContent.innerHTML = `
+          <h2>Mesas</h2>
+          <div class="grid">${snapshot.tables
+            .map(
+              (table) => `
+                <article class="card">
+                  <h3>${escapeHtml(table.name)}</h3>
+                  <p>${table.capacity} personas · ${escapeHtml(tableStatus(table.status))}</p>
+                  <button class="action secondary" data-table-status="${table.id}">
+                    Cambiar estado
+                  </button>
+                </article>`,
+            )
+            .join("")}</div>`;
+        document.querySelectorAll("[data-table-status]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const table = snapshot.tables.find(
+              (item) => item.id === button.dataset.tableStatus,
+            );
+            if (!table) return;
+            const cycle = ["free", "reserved", "occupied", "needs_cleaning"];
+            const next =
+              cycle[(cycle.indexOf(table.status) + 1) % cycle.length];
+            await enqueue("table.status_changed", table.id, table.version, {
+              status: next,
+            });
+            table.status = next;
+            table.version += 1;
+            await saveState();
+            renderHost();
+          });
+        });
+      }
+      function renderKitchen() {
+        const nextStatus = {
+          received: "preparing",
+          preparing: "ready",
+          ready: "delivered",
+        };
+        offlineContent.innerHTML = `
+          <h2>Cocina</h2>
+          <div class="grid">${snapshot.kitchenItems
+            .map(
+              (item) => `
+                <article class="card">
+                  <h3>${item.quantity} × ${escapeHtml(item.menuItemName)}</h3>
+                  <p>${escapeHtml(item.notes || "Sin notas")} · ${escapeHtml(item.status)}</p>
+                  ${
+                    nextStatus[item.status]
+                      ? `<button class="action" data-kitchen-item="${item.id}">Pasar a ${nextStatus[item.status]}</button>`
+                      : ""
+                  }
+                </article>`,
+            )
+            .join("")}</div>`;
+        document.querySelectorAll("[data-kitchen-item]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const item = snapshot.kitchenItems.find(
+              (candidate) => candidate.id === button.dataset.kitchenItem,
+            );
+            if (!item || !nextStatus[item.status]) return;
+            const next = nextStatus[item.status];
+            await enqueue(
+              "kitchen.item_status_changed",
+              item.id,
+              item.version,
+              { status: next },
+            );
+            item.status = next;
+            item.version += 1;
+            await saveState();
+            renderKitchen();
+          });
+        });
+      }
+      function renderService() {
+        const tableCards = snapshot.tables
+          .map(
+            (table) => `
+              <button class="table-button ${selectedTableId === table.id ? "selected" : ""}" data-select-table="${table.id}">
+                <strong>${escapeHtml(table.name)}</strong><br />
+                <small>${escapeHtml(tableStatus(table.status))}</small>
+              </button>`,
+          )
+          .join("");
+        const menuRows = snapshot.menu
+          .filter((item) => item.available)
+          .map(
+            (item) => `
+              <div class="menu-row">
+                <div><strong>${escapeHtml(item.name)}</strong><br /><small>${money(item.priceCents)}</small></div>
+                <div class="counter">
+                  <button data-minus="${item.id}" aria-label="Quitar">−</button>
+                  <strong>${cart[item.id] || 0}</strong>
+                  <button data-plus="${item.id}" aria-label="Agregar">+</button>
+                </div>
+              </div>`,
+          )
+          .join("");
+        const units = Object.values(cart).reduce(
+          (total, quantity) => total + quantity,
+          0,
+        );
+        offlineContent.innerHTML = `
+          <h2>Pedido local</h2>
+          <div class="grid">${tableCards}</div>
+          <article class="card" style="margin-top:16px">
+            <h3>Menú guardado</h3>
+            ${menuRows}
+            <button class="action" id="save-order" ${!selectedTableId || !units ? "disabled" : ""}>
+              Guardar pedido · ${units} producto${units === 1 ? "" : "s"}
+            </button>
+          </article>`;
+        document.querySelectorAll("[data-select-table]").forEach((button) => {
+          button.addEventListener("click", () => {
+            selectedTableId = button.dataset.selectTable;
+            renderService();
+          });
+        });
+        document.querySelectorAll("[data-plus]").forEach((button) => {
+          button.addEventListener("click", () => {
+            cart[button.dataset.plus] = (cart[button.dataset.plus] || 0) + 1;
+            renderService();
+          });
+        });
+        document.querySelectorAll("[data-minus]").forEach((button) => {
+          button.addEventListener("click", () => {
+            cart[button.dataset.minus] = Math.max(
+              0,
+              (cart[button.dataset.minus] || 0) - 1,
+            );
+            renderService();
+          });
+        });
+        document
+          .querySelector("#save-order")
+          ?.addEventListener("click", async () => {
+            const orderId = crypto.randomUUID();
+            const items = Object.entries(cart)
+              .filter(([, quantity]) => quantity > 0)
+              .map(([menuItemId, quantity]) => ({
+                id: crypto.randomUUID(),
+                menu_item_id: menuItemId,
+                quantity,
+              }));
+            await enqueue("order.submitted", orderId, undefined, {
+              table_id: selectedTableId,
+              guest_count: 1,
+              items,
+            });
+            const table = snapshot.tables.find(
+              (candidate) => candidate.id === selectedTableId,
+            );
+            if (table) table.status = "occupied";
+            cart = {};
+            await saveState();
+            renderService();
+          });
+      }
+      async function showOffline() {
+        const [snapshotRaw, queueRaw] = await Promise.all([
+          getValue(SNAPSHOT_KEY),
+          getValue(QUEUE_KEY),
+        ]);
+        if (!snapshotRaw) {
+          status.textContent = "";
+          error.textContent =
+            "La PC no responde y este dispositivo todavía no tiene una copia local. Conéctalo una vez con sesión iniciada.";
+          return;
+        }
+        try {
+          snapshot = JSON.parse(snapshotRaw);
+          queue = queueRaw ? JSON.parse(queueRaw) : [];
+        } catch {
+          error.textContent = "La copia local está dañada. Conecta con la PC.";
+          return;
+        }
+        setup.style.display = "none";
+        offline.style.display = "block";
+        document.querySelector("#offline-title").textContent =
+          `Modo local · ${snapshot.user.name}`;
+        document.querySelector("#offline-branch").textContent =
+          `${snapshot.user.branchName} · copia ${new Date(snapshot.capturedAt).toLocaleString("es-MX")}`;
+        queueBadge.textContent = `${queue.length} pendiente${queue.length === 1 ? "" : "s"}`;
+        if (currentRole === "service") renderService();
+        else if (currentRole === "kitchen") renderKitchen();
+        else if (currentRole === "host") renderHost();
+        else renderAdmin();
+      }
+      async function connect(raw, automatic = false) {
+        error.textContent = "";
+        status.textContent = "Buscando la PC principal…";
+        submit.disabled = true;
+        try {
+          const base = normalize(raw);
+          input.value = base;
+          if (!(await verify(base))) {
+            status.textContent = "PC no disponible. Abriendo modo local…";
+            await showOffline();
+            return;
+          }
+          status.textContent = "PC encontrada. Sincronizando…";
+          await setValue(SERVER_KEY, base);
+          window.location.replace(base + rolePath[currentRole]);
+        } catch (reason) {
+          status.textContent = "";
+          error.textContent =
+            reason instanceof Error ? reason.message : "Dirección inválida.";
+          if (automatic) input.focus();
+        } finally {
+          submit.disabled = false;
+        }
+      }
+      async function start() {
+        currentRole = await role();
+        const saved = await getValue(SERVER_KEY);
+        void connect(saved || defaultServer, true);
+      }
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         void connect(input.value.trim());
       });
+      document.querySelector("#retry").addEventListener("click", async () => {
+        const saved = await getValue(SERVER_KEY);
+        if (saved && (await verify(saved))) {
+          window.location.replace(saved + rolePath[currentRole]);
+        } else {
+          queueBadge.textContent = `${queue.length} pendientes · PC sin señal`;
+        }
+      });
+      void start();
     </script>
   </body>
 </html>

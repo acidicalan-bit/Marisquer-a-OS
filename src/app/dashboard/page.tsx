@@ -31,19 +31,31 @@ export default async function DashboardPage() {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/login");
 
+  const settingsResult = await supabase
+    .from("sales_assistant_settings")
+    .select("lookback_days")
+    .maybeSingle();
+  const lookbackDays = Math.min(
+    365,
+    Math.max(7, Number(settingsResult.data?.lookback_days ?? 30)),
+  );
   const recommendationEnd = new Date();
-  const recommendationStart = new Date(recommendationEnd);
-  recommendationStart.setDate(recommendationStart.getDate() - 30);
+  const recommendationStart = new Date(
+    recommendationEnd.getTime() - lookbackDays * 86_400_000,
+  );
   const [
     profileResult,
     tablesResult,
     menuResult,
     adminPermissionResult,
+    cashPermissionResult,
     recommendationResult,
   ] = await Promise.all([
     supabase
       .from("user_profiles")
-      .select("full_name, employee_number, branch:branches(name)")
+      .select(
+        "full_name, employee_number, branch:branches!user_profiles_branch_organization_fkey(name)",
+      )
       .eq("id", auth.user.id)
       .maybeSingle(),
     supabase
@@ -59,6 +71,7 @@ export default async function DashboardPage() {
       .is("deleted_at", null)
       .order("sort_order"),
     supabase.rpc("has_permission", { permission_code: "menu.manage" }),
+    supabase.rpc("has_permission", { permission_code: "cash.manage" }),
     supabase.rpc("menu_performance", {
       requested_start: recommendationStart.toISOString(),
       requested_end: recommendationEnd.toISOString(),
@@ -100,6 +113,7 @@ export default async function DashboardPage() {
         Number(right.recommendation_score) - Number(left.recommendation_score),
     )
     .find((item) => Number(item.recommendation_score) > 0);
+  const recommendationAvailable = !recommendationResult.error;
   const fullName =
     typeof profile?.full_name === "string" ? profile.full_name : null;
   const branch = firstRelation(profile?.branch);
@@ -119,7 +133,7 @@ export default async function DashboardPage() {
               <Store className="size-5" />
             </span>
             <div>
-              <p className="font-semibold">Marisquería OS</p>
+              <p className="font-semibold">Barlovento</p>
               <p className="text-muted-foreground text-xs">
                 {branch?.name ?? "Sucursal asignada"}
               </p>
@@ -141,6 +155,18 @@ export default async function DashboardPage() {
               >
                 <Link href="/admin">
                   <Settings />
+                </Link>
+              </Button>
+            )}
+            {cashPermissionResult.data && (
+              <Button
+                asChild
+                size="icon"
+                variant="ghost"
+                aria-label="Abrir caja"
+              >
+                <Link href="/cash">
+                  <CircleDollarSign />
                 </Link>
               </Button>
             )}
@@ -185,7 +211,11 @@ export default async function DashboardPage() {
           <StatCard
             label="Venta abierta"
             value="$0"
-            detail="caja en fase 3"
+            detail={
+              cashPermissionResult.data
+                ? "abrir caja en la barra superior"
+                : "visible para caja"
+            }
             icon={CircleDollarSign}
           />
         </section>
@@ -199,8 +229,10 @@ export default async function DashboardPage() {
             </p>
             <p className="mt-1 text-lg font-semibold">
               {recommendation
-                ? `Hoy puedes recomendar ${recommendation.item_name}.`
-                : "Las sugerencias aparecerán con las primeras ventas."}
+                ? `Puedes recomendar ${recommendation.item_name}.`
+                : recommendationAvailable
+                  ? "Las sugerencias aparecerán con ventas, recetas y margen suficientes."
+                  : "No se pudo calcular una sugerencia confiable."}
             </p>
             {recommendation && (
               <p className="mt-1 text-sm text-white/50">
@@ -213,7 +245,7 @@ export default async function DashboardPage() {
             )}
           </div>
           <Badge className="mt-4 bg-white/10 text-white hover:bg-white/10 sm:mt-0">
-            Actualizado en tiempo real
+            Últimos {lookbackDays} días
           </Badge>
         </section>
         <section className="mt-6 grid gap-6 lg:grid-cols-3">

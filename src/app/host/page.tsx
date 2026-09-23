@@ -1,16 +1,13 @@
 import { Armchair, LogOut, Users } from "lucide-react";
-import { redirect } from "next/navigation";
 
 import { logoutAction } from "@/app/login/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { HOST_ROLE_CODES, requireRolePage } from "@/lib/auth/role-access";
 
 export const dynamic = "force-dynamic";
 export default async function HostPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) redirect("/login");
+  const { supabase } = await requireRolePage(HOST_ROLE_CODES);
   const { data: tables, error } = await supabase
     .from("tables")
     .select("id,name,capacity,status,section:restaurant_sections(name)")

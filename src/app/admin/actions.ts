@@ -7,6 +7,7 @@ import OpenAI from "openai";
 import { z } from "zod";
 
 import { type AdminPermission, requireAdminPermission } from "@/lib/auth/admin";
+import { moneyToCents } from "@/lib/cash/money";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const uuid = z.string().uuid();
@@ -23,6 +24,42 @@ function checked(formData: FormData, key: string) {
 
 async function context(permission: AdminPermission) {
   return requireAdminPermission(permission);
+}
+
+type AdminContext = Awaited<ReturnType<typeof requireAdminPermission>>;
+
+async function requireOwnedBranch(ctx: AdminContext, branchId: string | null) {
+  if (!branchId) return;
+  const { data, error } = await ctx.supabase
+    .from("branches")
+    .select("id")
+    .eq("id", branchId)
+    .eq("organization_id", ctx.profile.organization_id)
+    .maybeSingle();
+  if (error || !data)
+    throw new Error("La sucursal no pertenece a tu organización.");
+}
+
+async function requireOwnedRole(ctx: AdminContext, roleId: string | null) {
+  if (!roleId) return;
+  const { data, error } = await ctx.supabase
+    .from("roles")
+    .select("id")
+    .eq("id", roleId)
+    .eq("organization_id", ctx.profile.organization_id)
+    .maybeSingle();
+  if (error || !data) throw new Error("El rol no pertenece a tu organización.");
+}
+
+async function requireOwnedUser(ctx: AdminContext, userId: string) {
+  const { data, error } = await ctx.supabase
+    .from("user_profiles")
+    .select("id")
+    .eq("id", userId)
+    .eq("organization_id", ctx.profile.organization_id)
+    .maybeSingle();
+  if (error || !data)
+    throw new Error("El usuario no pertenece a tu organización.");
 }
 
 async function writeAudit(
@@ -54,19 +91,16 @@ export async function saveBrand(formData: FormData) {
   const branchId = uuid.parse(
     value(formData, "branch_id") || ctx.profile.branch_id,
   );
+  await requireOwnedBranch(ctx, branchId);
   const name = shortText.parse(value(formData, "name"));
   let logoUrl = value(formData, "current_logo_url") || null;
   const logo = formData.get("logo");
   if (logo instanceof File && logo.size > 0) {
     if (logo.size > 5 * 1024 * 1024) throw new Error("El logo supera 5 MB.");
     if (
-      ![
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "image/avif",
-        "image/svg+xml",
-      ].includes(logo.type)
+      !["image/jpeg", "image/png", "image/webp", "image/avif"].includes(
+        logo.type,
+      )
     ) {
       throw new Error("Formato de logo no permitido.");
     }
@@ -113,6 +147,7 @@ export async function generateBrandLogo(formData: FormData) {
   const branchId = uuid.parse(
     value(formData, "branch_id") || ctx.profile.branch_id,
   );
+  await requireOwnedBranch(ctx, branchId);
   const name = shortText.parse(value(formData, "name"));
   const style = z
     .enum(["ocean", "pearl", "coral"])
@@ -181,17 +216,25 @@ export async function saveUser(formData: FormData) {
   });
   const admin = createSupabaseAdminClient();
 
+  await Promise.all([
+    requireOwnedBranch(ctx, data.branchId),
+    requireOwnedRole(ctx, data.roleId),
+  ]);
+
   if (data.id) {
     if (data.id === ctx.user.id && !checked(formData, "is_active")) {
       throw new Error("No puedes suspender tu propia cuenta.");
     }
+    await requireOwnedUser(ctx, data.id);
     const authUpdate = await admin.auth.admin.updateUserById(data.id, {
       email: data.email,
       ...(data.password ? { password: data.password } : {}),
-      user_metadata: {
+      app_metadata: {
         organization_id: ctx.profile.organization_id,
         branch_id: data.branchId,
         role_id: data.roleId,
+      },
+      user_metadata: {
         employee_number: data.employeeNumber || null,
         full_name: data.fullName,
       },
@@ -207,7 +250,9 @@ export async function saveUser(formData: FormData) {
         is_active: checked(formData, "is_active"),
       })
       .eq("id", data.id)
-      .eq("organization_id", ctx.profile.organization_id);
+      .eq("organization_id", ctx.profile.organization_id)
+      .select("id")
+      .single();
     if (error) throw error;
     await writeAudit(ctx, "user.updated", "user_profile", data.id, {
       email: data.email,
@@ -220,15 +265,33 @@ export async function saveUser(formData: FormData) {
       email: data.email,
       password: data.password,
       email_confirm: true,
-      user_metadata: {
+      app_metadata: {
         organization_id: ctx.profile.organization_id,
         branch_id: data.branchId,
         role_id: data.roleId,
+      },
+      user_metadata: {
         employee_number: data.employeeNumber || null,
         full_name: data.fullName,
       },
     });
     if (error) throw error;
+    const { error: profileError } = await admin.from("user_profiles").upsert(
+      {
+        id: created.user.id,
+        organization_id: ctx.profile.organization_id,
+        branch_id: data.branchId,
+        role_id: data.roleId,
+        employee_number: data.employeeNumber || null,
+        full_name: data.fullName,
+        is_active: true,
+      },
+      { onConflict: "id" },
+    );
+    if (profileError) {
+      await admin.auth.admin.deleteUser(created.user.id);
+      throw profileError;
+    }
     await writeAudit(ctx, "user.created", "user_profile", created.user.id, {
       email: data.email,
     });
@@ -241,6 +304,7 @@ export async function deleteUser(formData: FormData) {
   const id = uuid.parse(value(formData, "id"));
   if (id === ctx.user.id)
     throw new Error("No puedes eliminar tu propia cuenta.");
+  await requireOwnedUser(ctx, id);
   const admin = createSupabaseAdminClient();
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) throw error;
@@ -265,7 +329,12 @@ export async function saveCategory(formData: FormData) {
     deleted_at: null,
   };
   const query = id
-    ? ctx.supabase.from("menu_categories").update(record).eq("id", id)
+    ? ctx.supabase
+        .from("menu_categories")
+        .update(record)
+        .eq("id", id)
+        .eq("organization_id", ctx.profile.organization_id)
+        .eq("branch_id", ctx.profile.branch_id)
     : ctx.supabase.from("menu_categories").insert(record);
   const { error } = await query;
   if (error) throw error;
@@ -306,7 +375,7 @@ export async function saveMenuItem(formData: FormData) {
     imageUrl = ctx.supabase.storage.from("menu-images").getPublicUrl(path)
       .data.publicUrl;
   }
-  const price = z.coerce.number().min(0).parse(value(formData, "price"));
+  const priceCents = moneyToCents(value(formData, "price"));
   const record = {
     organization_id: ctx.profile.organization_id,
     branch_id: ctx.profile.branch_id,
@@ -315,7 +384,7 @@ export async function saveMenuItem(formData: FormData) {
     sku: value(formData, "sku") || null,
     name: shortText.parse(value(formData, "name")),
     description: value(formData, "description") || null,
-    price_cents: Math.round(price * 100),
+    price_cents: priceCents,
     expected_minutes: z.coerce
       .number()
       .int()
@@ -328,7 +397,12 @@ export async function saveMenuItem(formData: FormData) {
     deleted_at: null,
   };
   const query = id
-    ? ctx.supabase.from("menu_items").update(record).eq("id", id)
+    ? ctx.supabase
+        .from("menu_items")
+        .update(record)
+        .eq("id", id)
+        .eq("organization_id", ctx.profile.organization_id)
+        .eq("branch_id", ctx.profile.branch_id)
     : ctx.supabase.from("menu_items").insert(record);
   const { error } = await query;
   if (error) throw error;
@@ -426,7 +500,9 @@ export async function disableStation(formData: FormData) {
   const { error } = await ctx.supabase
     .from("preparation_stations")
     .update({ is_active: false })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", ctx.profile.organization_id)
+    .eq("branch_id", ctx.profile.branch_id);
   if (error) throw error;
   done();
 }
@@ -448,7 +524,7 @@ export async function disableSupplier(formData: FormData) {
 }
 
 export async function saveIngredient(formData: FormData) {
-  const cost = z.coerce.number().min(0).parse(value(formData, "cost"));
+  const costCents = moneyToCents(value(formData, "cost"));
   await saveScopedEntity(formData, "inventory.manage", "ingredients", {
     name: shortText.parse(value(formData, "name")),
     sku: value(formData, "sku") || null,
@@ -460,7 +536,7 @@ export async function saveIngredient(formData: FormData) {
       .number()
       .min(0)
       .parse(value(formData, "minimum_quantity")),
-    cost_cents: Math.round(cost * 100),
+    cost_cents: costCents,
     is_active: checked(formData, "is_active"),
   });
 }
@@ -529,7 +605,12 @@ export async function saveRecommendationSettings(formData: FormData) {
       .min(7)
       .max(365)
       .parse(value(formData, "lookback_days")),
-    recommendation_message: value(formData, "recommendation_message") || null,
+    recommendation_message:
+      z
+        .string()
+        .trim()
+        .max(500)
+        .parse(value(formData, "recommendation_message")) || null,
     is_active: checked(formData, "is_active"),
   };
   const { error } = await ctx.supabase
@@ -585,6 +666,8 @@ export async function toggleShift(formData: FormData) {
         closed_at: new Date().toISOString(),
       })
       .eq("id", shiftId)
+      .eq("organization_id", ctx.profile.organization_id)
+      .eq("branch_id", ctx.profile.branch_id)
       .eq("status", "open");
     if (error) throw error;
     await writeAudit(ctx, "shift.closed", "shift", shiftId);
@@ -608,7 +691,12 @@ async function saveScopedEntity(
     ...fields,
   };
   const query = id
-    ? ctx.supabase.from(table).update(record).eq("id", id)
+    ? ctx.supabase
+        .from(table)
+        .update(record)
+        .eq("id", id)
+        .eq("organization_id", ctx.profile.organization_id)
+        .eq("branch_id", ctx.profile.branch_id)
     : ctx.supabase.from(table).insert(record);
   const { error } = await query;
   if (error) throw error;
@@ -633,7 +721,9 @@ async function softDelete(
   const { error } = await ctx.supabase
     .from(table)
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", ctx.profile.organization_id)
+    .eq("branch_id", ctx.profile.branch_id);
   if (error) throw error;
   await writeAudit(ctx, `${entityType}.archived`, entityType, id);
   done();
@@ -649,7 +739,9 @@ async function disableEntity(
   const { error } = await ctx.supabase
     .from(table)
     .update({ is_active: false })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", ctx.profile.organization_id)
+    .eq("branch_id", ctx.profile.branch_id);
   if (error) throw error;
   await writeAudit(ctx, `${table}.disabled`, table, id);
   done();

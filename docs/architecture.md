@@ -30,3 +30,16 @@ Mesero → función transaccional `submit_order` → `orders`/`order_items` → 
 - Eliminación lógica sólo en catálogos; transacciones financieras son inmutables o compensadas.
 - PIN con bcrypt mediante `pgcrypto`; el navegador nunca obtiene el hash.
 - Ningún cliente Supabase se inicializa en módulo durante el build.
+
+## Copiloto híbrido Mar
+
+`/api/assistant` autentica la sesión y construye un contexto de sólo lectura con menú, inventario, desempeño de ventas, mesas, turno y configuración comercial. Ese contexto alimenta dos capas:
+
+1. OpenAI redacta la respuesta natural cuando la API está disponible.
+2. El cerebro local clasifica la intención y responde de forma determinista cuando falta configuración, saldo, conectividad, tiempo de respuesta o disponibilidad del proveedor.
+
+El cerebro local no inventa transacciones ni sustituye datos de Supabase. Sus recomendaciones se ordenan con `menu_performance`, que combina ventas, margen estimado, tendencia y la ponderación configurada por administración. Operaciones sensibles como usuarios, contraseñas, turnos y cambios de configuración siempre se ejecutan en sus formularios autorizados; el chat sólo orienta.
+
+La respuesta de la API incluye `mode: "openai" | "local"`. La interfaz lo muestra para que el usuario sepa si recibió una respuesta generativa o una conclusión local verificable.
+
+Antes de llamar a OpenAI, una guardia por usuario limita el consumo por minuto. Al alcanzar el límite, el mismo request se resuelve con el cerebro local; no se bloquea la operación. La guardia vive en el proceso único de la PC y deberá migrarse a un contador distribuido si la API se ejecuta en varias réplicas.

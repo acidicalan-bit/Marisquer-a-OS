@@ -21,26 +21,26 @@ android {
         admin {
             dimension "role"
             applicationId "mx.marisqueria.os.admin"
-            resValue "string", "app_name", "Marisquería OS Admin"
-            resValue "string", "title_activity_main", "Marisquería OS Admin"
+            resValue "string", "app_name", "Barlovento Admin"
+            resValue "string", "title_activity_main", "Barlovento Admin"
         }
         service {
             dimension "role"
             applicationId "mx.marisqueria.os.service"
-            resValue "string", "app_name", "Marisquería OS Meseros"
-            resValue "string", "title_activity_main", "Marisquería OS Meseros"
+            resValue "string", "app_name", "Barlovento Meseros"
+            resValue "string", "title_activity_main", "Barlovento Meseros"
         }
         kitchen {
             dimension "role"
             applicationId "mx.marisqueria.os.kitchen"
-            resValue "string", "app_name", "Marisquería OS Cocina"
-            resValue "string", "title_activity_main", "Marisquería OS Cocina"
+            resValue "string", "app_name", "Barlovento Cocina"
+            resValue "string", "title_activity_main", "Barlovento Cocina"
         }
         host {
             dimension "role"
             applicationId "mx.marisqueria.os.host"
-            resValue "string", "app_name", "Marisquería OS Host"
-            resValue "string", "title_activity_main", "Marisquería OS Host"
+            resValue "string", "app_name", "Barlovento Recepción"
+            resValue "string", "title_activity_main", "Barlovento Recepción"
         }
     }
     buildTypes {

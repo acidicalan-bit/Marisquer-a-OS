@@ -1,18 +1,15 @@
 import { ChefHat, Clock3, LogOut } from "lucide-react";
-import { redirect } from "next/navigation";
 
 import { updateKitchenItemStatus } from "@/app/kitchen/actions";
 import { logoutAction } from "@/app/login/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { KITCHEN_ROLE_CODES, requireRolePage } from "@/lib/auth/role-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function KitchenPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) redirect("/login");
+  const { supabase } = await requireRolePage(KITCHEN_ROLE_CODES);
   const { data: items, error } = await supabase
     .from("order_items")
     .select(

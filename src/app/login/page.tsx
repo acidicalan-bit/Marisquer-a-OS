@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/login-form";
+import { RecoveryFragmentHandler } from "@/components/auth/recovery-fragment-handler";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,7 +19,12 @@ import { createOptionalSupabaseServerClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Acceso" };
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ error?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const query = await searchParams;
   const configured = Boolean(getPublicEnv());
   if (configured) {
     const supabase = await createOptionalSupabaseServerClient();
@@ -28,14 +34,15 @@ export default async function LoginPage() {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
+      <RecoveryFragmentHandler />
       <section className="bg-primary text-primary-foreground hidden p-12 lg:flex lg:flex-col lg:justify-between">
         <div className="flex items-center gap-3">
           <Anchor className="size-7" />
-          <span className="text-lg font-semibold">Marisquería OS</span>
+          <span className="text-lg font-semibold">Barlovento</span>
         </div>
         <div className="max-w-xl">
           <Badge className="mb-5 border-white/20 bg-white/10 text-white">
-            Marisquería Pacífico
+            Barlovento
           </Badge>
           <h1 className="text-5xl font-semibold tracking-[-0.04em] text-balance">
             Cada servicio, claro. Cada estación, a tiempo.
@@ -64,6 +71,15 @@ export default async function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {query.error === "recovery_link_invalid" ? (
+              <Alert variant="destructive" className="mb-5">
+                <AlertTitle>El enlace no pudo validarse</AlertTitle>
+                <AlertDescription>
+                  Solicita un enlace nuevo y abre únicamente el correo más
+                  reciente. Los enlaces anteriores dejan de ser válidos.
+                </AlertDescription>
+              </Alert>
+            ) : null}
             {!configured ? (
               <Alert>
                 <AlertTitle>Supabase aún no está enlazado</AlertTitle>

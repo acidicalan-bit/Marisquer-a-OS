@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { KITCHEN_ROLE_CODES, requireRoleAction } from "@/lib/auth/role-access";
 
 export async function updateKitchenItemStatus(formData: FormData) {
-  const supabase = await createSupabaseServerClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error("Sesión requerida.");
+  const { supabase, profile } = await requireRoleAction(KITCHEN_ROLE_CODES);
+  if (!profile.branch_id)
+    throw new Error("Tu usuario no tiene sucursal asignada.");
   const id = z
     .string()
     .uuid()
@@ -27,7 +27,9 @@ export async function updateKitchenItemStatus(formData: FormData) {
   const { error } = await supabase
     .from("order_items")
     .update({ status, ...timestamp })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("organization_id", profile.organization_id)
+    .eq("branch_id", profile.branch_id);
   if (error) throw error;
   revalidatePath("/kitchen");
 }

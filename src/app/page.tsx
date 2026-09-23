@@ -25,7 +25,7 @@ export default async function Home() {
             <Anchor className="size-5" />
           </span>
           <div>
-            <p className="font-semibold tracking-tight">Marisquería OS</p>
+            <p className="font-semibold tracking-tight">Barlovento</p>
             <p className="text-muted-foreground text-xs">Pacífico · CDMX</p>
           </div>
         </div>

@@ -36,10 +36,12 @@ import {
 import { AiConcierge } from "@/components/assistant/ai-concierge";
 import { AdminCrud, type AdminField } from "@/components/admin/admin-crud";
 import { BrandStudio } from "@/components/admin/brand-studio";
+import { ConnectionAddress } from "@/components/admin/connection-address";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAdminAccess } from "@/lib/auth/admin";
+import { getLocalServerAddresses } from "@/lib/network/server-address";
 import {
   createSupabaseAdminClient,
   hasSupabaseAdminKey,
@@ -49,10 +51,20 @@ export const metadata: Metadata = { title: "Administración" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  const serverAddresses = getLocalServerAddresses();
   const { supabase, user } = await getAdminAccess();
+  const recommendationSettings = await supabase
+    .from("sales_assistant_settings")
+    .select(
+      "margin_weight, low_sales_weight, inventory_weight, minimum_margin_basis_points, lookback_days, recommendation_message, is_active",
+    )
+    .maybeSingle();
+  const lookbackDays = Math.min(
+    365,
+    Math.max(7, Number(recommendationSettings.data?.lookback_days ?? 30)),
+  );
   const periodEnd = new Date();
-  const periodStart = new Date(periodEnd);
-  periodStart.setDate(periodStart.getDate() - 30);
+  const periodStart = new Date(periodEnd.getTime() - lookbackDays * 86_400_000);
   const [
     profile,
     branch,
@@ -66,7 +78,6 @@ export default async function AdminPage() {
     suppliers,
     ingredients,
     movements,
-    recommendationSettings,
     performance,
     currentShift,
   ] = await Promise.all([
@@ -129,12 +140,6 @@ export default async function AdminPage() {
       )
       .order("created_at", { ascending: false })
       .limit(12),
-    supabase
-      .from("sales_assistant_settings")
-      .select(
-        "margin_weight, low_sales_weight, inventory_weight, minimum_margin_basis_points, lookback_days, recommendation_message, is_active",
-      )
-      .maybeSingle(),
     supabase.rpc("menu_performance", {
       requested_start: periodStart.toISOString(),
       requested_end: periodEnd.toISOString(),
@@ -446,6 +451,7 @@ export default async function AdminPage() {
             marca y conversaciones.
           </p>
         </div>
+        <ConnectionAddress addresses={serverAddresses} />
         <Tabs defaultValue="brand" className="space-y-6">
           <ShiftControl shift={currentShift.data} />
           <TabsList className="h-auto w-full [scrollbar-width:none] justify-start gap-1 overflow-x-auto rounded-2xl border border-white bg-white/80 p-1.5 shadow-sm [&::-webkit-scrollbar]:hidden">
@@ -1011,7 +1017,8 @@ function SalesIntelligence({
       <section className="overflow-hidden rounded-[1.75rem] border border-white bg-white/90 shadow-sm">
         <div className="border-b px-6 py-5">
           <h2 className="text-xl font-semibold">
-            Rendimiento preciso · últimos 30 días
+            Rendimiento preciso · últimos{" "}
+            {Number(settings?.lookback_days ?? 30)} días
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             Sólo órdenes no canceladas. El costo estimado proviene de recetas e

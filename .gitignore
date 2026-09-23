@@ -25,6 +25,10 @@
 /electron/runtime-config.json
 /.desktop-build
 /tmp
+/entregables
+/artifacts
+/supabase/.temp
+/audit-public.png
 
 # misc
 .DS_Store

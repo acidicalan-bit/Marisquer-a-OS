@@ -23,7 +23,7 @@ export default async function PasswordPage() {
           </h1>
           <p className="text-muted-foreground text-sm leading-6">
             Se actualiza directamente en Supabase Auth y nunca se guarda en
-            Marisquería OS.
+            Barlovento.
           </p>
         </CardHeader>
         <CardContent>
