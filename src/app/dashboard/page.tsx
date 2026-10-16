@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { randomUUID } from "node:crypto";
 
 import { logoutAction } from "@/app/login/actions";
 import { MenuList } from "@/components/dashboard/menu-list";
@@ -22,6 +23,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AiConcierge } from "@/components/assistant/ai-concierge";
+import { WaiterOrderComposer } from "@/components/dashboard/waiter-order-composer";
+import { WaiterOrderBoard, type WaiterOrder } from "@/components/dashboard/waiter-order-board";
+import { WaiterCheckoutPanel, type WaiterAccount } from "@/components/dashboard/waiter-checkout-panel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const metadata: Metadata = { title: "Operación" };
 export const dynamic = "force-dynamic";
@@ -31,19 +36,33 @@ export default async function DashboardPage() {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/login");
 
+  const settingsResult = await supabase
+    .from("sales_assistant_settings")
+    .select("lookback_days")
+    .maybeSingle();
+  const lookbackDays = Math.min(
+    365,
+    Math.max(7, Number(settingsResult.data?.lookback_days ?? 30)),
+  );
   const recommendationEnd = new Date();
-  const recommendationStart = new Date(recommendationEnd);
-  recommendationStart.setDate(recommendationStart.getDate() - 30);
+  const recommendationStart = new Date(
+    recommendationEnd.getTime() - lookbackDays * 86_400_000,
+  );
   const [
     profileResult,
     tablesResult,
     menuResult,
+    ordersResult,
     adminPermissionResult,
+    cashPermissionResult,
+    paymentPermissionResult,
     recommendationResult,
   ] = await Promise.all([
     supabase
       .from("user_profiles")
-      .select("full_name, employee_number, branch:branches(name)")
+      .select(
+        "full_name, employee_number, branch:branches!user_profiles_branch_organization_fkey(name), role:roles!user_profiles_role_organization_fkey(code)",
+      )
       .eq("id", auth.user.id)
       .maybeSingle(),
     supabase
@@ -54,22 +73,51 @@ export default async function DashboardPage() {
     supabase
       .from("menu_items")
       .select(
-        "id, name, price_cents, is_available, category:menu_categories(name)",
+        "id, name, description, image_url, price_cents, is_available, category_id, category:menu_categories(name)",
       )
       .is("deleted_at", null)
       .order("sort_order"),
+    supabase
+      .from("orders")
+      .select("id, folio, status, total_cents, submitted_at, session:table_sessions(table:tables(name)), items:order_items(id, quantity, status, notes, allergy_alert, menu_item:menu_items(name))")
+      .eq("waiter_id", auth.user.id)
+      .in("status", ["submitted", "in_progress", "ready"])
+      .order("submitted_at", { ascending: false })
+      .limit(16),
     supabase.rpc("has_permission", { permission_code: "menu.manage" }),
+    supabase.rpc("has_permission", { permission_code: "cash.manage" }),
+    supabase.rpc("has_permission", { permission_code: "payments.collect" }),
     supabase.rpc("menu_performance", {
       requested_start: recommendationStart.toISOString(),
       requested_end: recommendationEnd.toISOString(),
     }),
   ]);
 
-  if (profileResult.error || tablesResult.error || menuResult.error) {
+  if (profileResult.error || tablesResult.error || menuResult.error || ordersResult.error) {
     throw new Error(
       "No se pudo cargar el contexto de la sucursal. Revisa las migraciones y las políticas RLS.",
     );
   }
+
+  const waiterAccountsResult = paymentPermissionResult.data
+    ? await supabase.rpc("list_waiter_accounts")
+    : { data: [], error: null };
+  if (waiterAccountsResult.error) {
+    throw new Error("No se pudieron cargar las cuentas listas para cobro.");
+  }
+  const waiterAccounts: WaiterAccount[] = (
+    (waiterAccountsResult.data ?? []) as unknown as Array<{
+      table_session_id: string;
+      table_name: string;
+      session_status: string;
+      due_cents: number | string;
+    }>
+  ).map((account) => ({
+      sessionId: String(account.table_session_id),
+      tableName: String(account.table_name),
+      status: String(account.session_status),
+      dueCents: Number(account.due_cents),
+    }));
 
   const profile = profileResult.data;
   const tables = (tablesResult.data ?? []).map((table) => ({
@@ -85,6 +133,9 @@ export default async function DashboardPage() {
     price_cents: Number(item.price_cents),
     is_available: Boolean(item.is_available),
     category: firstRelation(item.category),
+    category_id: String(item.category_id ?? "uncategorized"),
+    description: String(item.description ?? ""),
+    image_url: item.image_url,
   }));
   const available = menu.filter((item) => item.is_available).length;
   const recommendation = (
@@ -100,9 +151,39 @@ export default async function DashboardPage() {
         Number(right.recommendation_score) - Number(left.recommendation_score),
     )
     .find((item) => Number(item.recommendation_score) > 0);
+  const recommendationAvailable = !recommendationResult.error;
   const fullName =
     typeof profile?.full_name === "string" ? profile.full_name : null;
   const branch = firstRelation(profile?.branch);
+  const assignedRole = relation(profile?.role)?.code;
+  const canTakeOrders = ["administrator", "manager", "captain", "waiter"].includes(String(assignedRole ?? ""));
+  const orderTables = tables.map((table) => ({ ...table, sectionName: table.section?.name ?? "Salón" }));
+  const orderMenu = menu.map((item) => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    priceCents: item.price_cents,
+    categoryId: item.category_id,
+    categoryName: item.category?.name ?? "Sin categoría",
+    imageUrl: item.image_url,
+    available: item.is_available,
+  }));
+  const myOrders: WaiterOrder[] = (ordersResult.data ?? []).map((order) => ({
+    id: order.id,
+    folio: Number(order.folio),
+    status: order.status,
+    totalCents: Number(order.total_cents),
+    submittedAt: order.submitted_at,
+    tableName: relationName(relation(order.session)?.table) ?? "Mesa",
+    items: (order.items ?? []).map((line) => ({
+      id: line.id,
+      name: relationName(line.menu_item) ?? "Producto",
+      quantity: line.quantity,
+      status: line.status,
+      notes: line.notes,
+      allergy: line.allergy_alert,
+    })),
+  }));
   const initials = (fullName ?? auth.user.email ?? "MO")
     .split(" ")
     .map((part: string) => part[0])
@@ -111,7 +192,7 @@ export default async function DashboardPage() {
     .toUpperCase();
 
   return (
-    <main className="min-h-screen">
+    <main className="dashboard-page min-h-screen">
       <header className="bg-background/90 sticky top-0 z-20 border-b backdrop-blur-xl">
         <div className="mx-auto flex h-17 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
@@ -120,7 +201,7 @@ export default async function DashboardPage() {
             </span>
             <div>
               <p className="font-semibold">Marisquería OS</p>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-slate-700 text-xs font-medium">
                 {branch?.name ?? "Sucursal asignada"}
               </p>
             </div>
@@ -144,6 +225,18 @@ export default async function DashboardPage() {
                 </Link>
               </Button>
             )}
+            {cashPermissionResult.data && (
+              <Button
+                asChild
+                size="icon"
+                variant="ghost"
+                aria-label="Ver ventas"
+              >
+                <Link href="/cash">
+                  <CircleDollarSign />
+                </Link>
+              </Button>
+            )}
             <form action={logoutAction}>
               <Button size="icon" variant="ghost" aria-label="Cerrar sesión">
                 <LogOut />
@@ -159,7 +252,7 @@ export default async function DashboardPage() {
           <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
             Buen servicio, {fullName?.split(" ")[0] ?? "equipo"}.
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-slate-700 mt-2">
             Vista inicial de mesas y menú autorizados por tu sucursal.
           </p>
         </div>
@@ -185,7 +278,11 @@ export default async function DashboardPage() {
           <StatCard
             label="Venta abierta"
             value="$0"
-            detail="caja en fase 3"
+            detail={
+              cashPermissionResult.data
+                ? "abrir caja en la barra superior"
+                : "visible para caja"
+            }
             icon={CircleDollarSign}
           />
         </section>
@@ -199,11 +296,13 @@ export default async function DashboardPage() {
             </p>
             <p className="mt-1 text-lg font-semibold">
               {recommendation
-                ? `Hoy puedes recomendar ${recommendation.item_name}.`
-                : "Las sugerencias aparecerán con las primeras ventas."}
+                ? `Puedes recomendar ${recommendation.item_name}.`
+                : recommendationAvailable
+                  ? "Las sugerencias aparecerán con ventas, recetas y margen suficientes."
+                  : "No se pudo calcular una sugerencia confiable."}
             </p>
             {recommendation && (
-              <p className="mt-1 text-sm text-white/50">
+              <p className="mt-1 text-sm text-white/80">
                 {recommendation.units_sold} vendidos · margen estimado{" "}
                 {(
                   Number(recommendation.gross_margin_basis_points) / 100
@@ -213,13 +312,23 @@ export default async function DashboardPage() {
             )}
           </div>
           <Badge className="mt-4 bg-white/10 text-white hover:bg-white/10 sm:mt-0">
-            Actualizado en tiempo real
+            Últimos {lookbackDays} días
           </Badge>
         </section>
-        <section className="mt-6 grid gap-6 lg:grid-cols-3">
-          <TableFloor tables={tables} />
-          <MenuList items={menu} />
-        </section>
+        {canTakeOrders ? <Tabs defaultValue="new-order" className="mt-7 space-y-5">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-2xl border border-slate-200 bg-card p-1.5 shadow-sm sm:max-w-3xl sm:grid-cols-4">
+            <TabsTrigger value="new-order" className="min-h-12 min-w-0 whitespace-normal break-words rounded-xl px-2 py-2 text-center text-xs font-semibold leading-tight sm:text-sm">Nuevo pedido</TabsTrigger>
+            <TabsTrigger value="orders" className="min-h-12 min-w-0 whitespace-normal break-words rounded-xl px-2 py-2 text-center text-xs font-semibold leading-tight sm:text-sm">Mis comandas</TabsTrigger>
+            <TabsTrigger value="checkout" className="min-h-12 min-w-0 whitespace-normal break-words rounded-xl px-2 py-2 text-center text-xs font-semibold leading-tight sm:text-sm">Cobrar cuenta · {waiterAccounts.length}</TabsTrigger>
+            <TabsTrigger value="floor" className="min-h-12 min-w-0 whitespace-normal break-words rounded-xl px-2 py-2 text-center text-xs font-semibold leading-tight sm:text-sm">Salón y carta</TabsTrigger>
+          </TabsList>
+          <TabsContent value="new-order">
+            <WaiterOrderComposer tables={orderTables} menu={orderMenu} initialOrderId={randomUUID()} initialEventId={randomUUID()} deviceId={randomUUID()} />
+          </TabsContent>
+          <TabsContent value="orders"><WaiterOrderBoard orders={myOrders} /></TabsContent>
+          <TabsContent value="checkout"><WaiterCheckoutPanel accounts={waiterAccounts} /></TabsContent>
+          <TabsContent value="floor" className="grid gap-6 lg:grid-cols-3"><TableFloor tables={tables} /><MenuList items={menu} /></TabsContent>
+        </Tabs> : <section className="mt-7 grid gap-6 lg:grid-cols-3"><TableFloor tables={tables} /><MenuList items={menu} /></section>}
       </div>
       <AiConcierge />
     </main>
@@ -237,4 +346,13 @@ function firstRelation(value: unknown): { name: string } | null {
     return { name: relation.name };
   }
   return null;
+}
+
+function relation(value: unknown): Record<string, unknown> | null {
+  const current = Array.isArray(value) ? value[0] : value;
+  return current && typeof current === "object" ? current as Record<string, unknown> : null;
+}
+
+function relationName(value: unknown): string | null {
+  return typeof relation(value)?.name === "string" ? String(relation(value)?.name) : null;
 }

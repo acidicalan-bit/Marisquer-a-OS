@@ -134,9 +134,69 @@
   }
 }
 
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 3mm;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #sale-receipt,
+  #sale-receipt * {
+    visibility: visible;
+  }
+
+  #sale-receipt {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 74mm;
+    max-width: none;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
 @layer utilities {
   .touch-target {
     min-height: 44px;
     min-width: 44px;
+  }
+}
+
+/* El catálogo de meseros nunca debe forzar una tarjeta fuera de su columna. */
+.waiter-menu-grid > * {
+  min-width: 0;
+}
+
+/* La operación del mesero se usa en tabletas estrechas: las pestañas deben
+   envolver su texto en vez de invadirse entre sí. */
+.dashboard-page [data-slot="tabs-trigger"] {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  line-height: 1.15;
+}
+
+/* Refuerza el contraste de textos secundarios sobre el fondo crema, incluido
+   el modo de pantalla lavado de algunas tabletas Android. */
+.dashboard-page .text-muted-foreground {
+  color: oklch(0.38 0.04 220);
+}
+
+@media (max-width: 639px) {
+  .waiter-menu-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
