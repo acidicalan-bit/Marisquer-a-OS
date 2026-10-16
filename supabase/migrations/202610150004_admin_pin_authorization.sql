@@ -38,7 +38,7 @@ begin
   end if;
 
   insert into public.employee_pins (organization_id, branch_id, user_id, pin_hash, changed_at)
-  values (target.organization_id, target.branch_id, target.id, crypt(candidate_pin, gen_salt('bf')), now())
+  values (target.organization_id, target.branch_id, target.id, extensions.crypt(candidate_pin, extensions.gen_salt('bf')), now())
   on conflict (user_id) do update set
     organization_id = excluded.organization_id,
     branch_id = excluded.branch_id,
@@ -80,7 +80,7 @@ begin
   limit 1
   for update;
   if not found or pin_record.locked_until > now() then return false; end if;
-  if pin_record.pin_hash = crypt(candidate_pin, pin_record.pin_hash) then
+  if pin_record.pin_hash = extensions.crypt(candidate_pin, pin_record.pin_hash) then
     update public.employee_pins set failed_attempts = 0, locked_until = null where id = pin_record.id;
     return true;
   end if;
