@@ -36,23 +36,32 @@ import {
 import { AiConcierge } from "@/components/assistant/ai-concierge";
 import { AdminCrud, type AdminField } from "@/components/admin/admin-crud";
 import { BrandStudio } from "@/components/admin/brand-studio";
+import { ConnectionAddress } from "@/components/admin/connection-address";
+import { SecurityPinForm } from "@/components/admin/security-pin-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAdminAccess } from "@/lib/auth/admin";
-import {
-  createSupabaseAdminClient,
-  hasSupabaseAdminKey,
-} from "@/lib/supabase/admin";
+import { getLocalServerAddresses } from "@/lib/network/server-address";
 
 export const metadata: Metadata = { title: "Administración" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const { supabase, user } = await getAdminAccess();
+  const serverAddresses = getLocalServerAddresses();
+  const { supabase, user, permissions } = await getAdminAccess();
+  const recommendationSettings = await supabase
+    .from("sales_assistant_settings")
+    .select(
+      "margin_weight, low_sales_weight, inventory_weight, minimum_margin_basis_points, lookback_days, recommendation_message, is_active",
+    )
+    .maybeSingle();
+  const lookbackDays = Math.min(
+    365,
+    Math.max(7, Number(recommendationSettings.data?.lookback_days ?? 30)),
+  );
   const periodEnd = new Date();
-  const periodStart = new Date(periodEnd);
-  periodStart.setDate(periodStart.getDate() - 30);
+  const periodStart = new Date(periodEnd.getTime() - lookbackDays * 86_400_000);
   const [
     profile,
     branch,
@@ -66,7 +75,6 @@ export default async function AdminPage() {
     suppliers,
     ingredients,
     movements,
-    recommendationSettings,
     performance,
     currentShift,
   ] = await Promise.all([
@@ -97,7 +105,7 @@ export default async function AdminPage() {
     supabase
       .from("preparation_stations")
       .select(
-        "id, name, station_type, attention_minutes, delayed_minutes, critical_minutes, is_active",
+        "id, name, station_type, sends_to_kitchen, attention_minutes, delayed_minutes, critical_minutes, is_active",
       )
       .order("name"),
     supabase
@@ -129,12 +137,6 @@ export default async function AdminPage() {
       )
       .order("created_at", { ascending: false })
       .limit(12),
-    supabase
-      .from("sales_assistant_settings")
-      .select(
-        "margin_weight, low_sales_weight, inventory_weight, minimum_margin_basis_points, lookback_days, recommendation_message, is_active",
-      )
-      .maybeSingle(),
     supabase.rpc("menu_performance", {
       requested_start: periodStart.toISOString(),
       requested_end: periodEnd.toISOString(),
@@ -166,15 +168,17 @@ export default async function AdminPage() {
     throw new Error(`No se pudo cargar el panel: ${failed.error.message}`);
 
   const emailById = new Map<string, string>();
-  if (hasSupabaseAdminKey()) {
-    const { data } = await createSupabaseAdminClient().auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-    data?.users.forEach((authUser) =>
-      emailById.set(authUser.id, authUser.email ?? ""),
-    );
-  }
+  const managedUsers = permissions["users.manage"]
+    ? await supabase.functions.invoke("mobile-admin-users", {
+        body: { operation: "list" },
+      })
+    : null;
+  const listedUsers = (
+    managedUsers?.data as { users?: { id: string; email: string }[] } | null
+  )?.users;
+  listedUsers?.forEach((managedUser) =>
+    emailById.set(managedUser.id, managedUser.email),
+  );
   const branchData = branch.data;
   if (!profile.data || !branchData)
     throw new Error("Asigna una sucursal al administrador.");
@@ -193,7 +197,12 @@ export default async function AdminPage() {
   }));
   const stationOptions = (stations.data ?? [])
     .filter((station) => station.is_active)
-    .map((station) => ({ label: station.name, value: station.id }));
+    .map((station) => ({
+      label: station.sends_to_kitchen
+        ? station.name
+        : `${station.name} · Sin comanda`,
+      value: station.id,
+    }));
   const supplierOptions = (suppliers.data ?? [])
     .filter((supplier) => supplier.is_active)
     .map((supplier) => ({ label: supplier.name, value: supplier.id }));
@@ -205,7 +214,9 @@ export default async function AdminPage() {
       name: "password",
       label: "Contraseña",
       type: "password",
-      placeholder: "Mínimo 12 caracteres",
+      placeholder: "Al crear, obligatoria · mínimo 12 caracteres",
+      required: true,
+      minLength: 12,
     },
     { name: "employee_number", label: "Número de empleado" },
     {
@@ -327,6 +338,12 @@ export default async function AdminPage() {
       ],
     },
     {
+      name: "sends_to_kitchen",
+      label: "Enviar comanda a cocina",
+      type: "checkbox",
+      defaultValue: true,
+    },
+    {
       name: "attention_minutes",
       label: "Atención (min)",
       type: "number",
@@ -446,6 +463,7 @@ export default async function AdminPage() {
             marca y conversaciones.
           </p>
         </div>
+        <ConnectionAddress addresses={serverAddresses} />
         <Tabs defaultValue="brand" className="space-y-6">
           <ShiftControl shift={currentShift.data} />
           <TabsList className="h-auto w-full [scrollbar-width:none] justify-start gap-1 overflow-x-auto rounded-2xl border border-white bg-white/80 p-1.5 shadow-sm [&::-webkit-scrollbar]:hidden">
@@ -484,49 +502,69 @@ export default async function AdminPage() {
             />
           </TabsContent>
           <TabsContent value="menu" className="space-y-6">
-            <AdminCrud
-              title="Platillos y bebidas"
-              description="Carta visual con precios, disponibilidad, estación e imagen propia."
-              createLabel="Nuevo elemento"
-              emptyLabel="Tu carta aún está vacía."
-              fields={menuFields}
-              records={(menuItems.data ?? []).map((item) => ({
-                id: item.id,
-                title: item.name,
-                subtitle: `$${(Number(item.price_cents) / 100).toFixed(2)} · ${item.is_available ? "Disponible" : "No disponible"}`,
-                name: item.name,
-                sku: item.sku ?? "",
-                description: item.description ?? "",
-                price: Number(item.price_cents) / 100,
-                expected_minutes: item.expected_minutes,
-                category_id: item.category_id,
-                station_id: item.station_id,
-                is_available: item.is_available,
-                is_active: item.is_active,
-                image_url: item.image_url,
-                current_image_url: item.image_url,
-              }))}
-              saveAction={saveMenuItem}
-              deleteAction={deleteMenuItem}
-            />
-            <AdminCrud
-              title="Categorías"
-              description="Organiza platillos, bebidas y especiales para navegar la carta con rapidez."
-              createLabel="Nueva categoría"
-              emptyLabel="No hay categorías."
-              fields={categoryFields}
-              records={(categories.data ?? []).map((item) => ({
-                id: item.id,
-                title: item.name,
-                subtitle: item.description ?? "Sin descripción",
-                name: item.name,
-                description: item.description ?? "",
-                sort_order: item.sort_order,
-                is_active: item.is_active,
-              }))}
-              saveAction={saveCategory}
-              deleteAction={deleteCategory}
-            />
+            <Tabs defaultValue="dishes" className="space-y-5">
+              <TabsList className="grid h-auto w-full max-w-xl grid-cols-2 rounded-2xl bg-white p-1.5 shadow-sm">
+                <TabsTrigger
+                  value="dishes"
+                  className="min-h-12 rounded-xl font-semibold"
+                >
+                  Platillos y bebidas
+                </TabsTrigger>
+                <TabsTrigger
+                  value="categories"
+                  className="min-h-12 rounded-xl font-semibold"
+                >
+                  Categorías
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="dishes">
+                <AdminCrud
+                  title="Platillos y bebidas"
+                  description="Carta visual con precios, disponibilidad, estación e imagen propia."
+                  createLabel="Nuevo elemento"
+                  emptyLabel="Tu carta aún está vacía."
+                  fields={menuFields}
+                  records={(menuItems.data ?? []).map((item) => ({
+                    id: item.id,
+                    title: item.name,
+                    subtitle: `$${(Number(item.price_cents) / 100).toFixed(2)} · ${item.is_available ? "Disponible" : "No disponible"}`,
+                    name: item.name,
+                    sku: item.sku ?? "",
+                    description: item.description ?? "",
+                    price: Number(item.price_cents) / 100,
+                    expected_minutes: item.expected_minutes,
+                    category_id: item.category_id,
+                    station_id: item.station_id,
+                    is_available: item.is_available,
+                    is_active: item.is_active,
+                    image_url: item.image_url,
+                    current_image_url: item.image_url,
+                  }))}
+                  saveAction={saveMenuItem}
+                  deleteAction={deleteMenuItem}
+                />
+              </TabsContent>
+              <TabsContent value="categories">
+                <AdminCrud
+                  title="Categorías"
+                  description="Organiza platillos, bebidas y especiales para navegar la carta con rapidez."
+                  createLabel="Nueva categoría"
+                  emptyLabel="No hay categorías."
+                  fields={categoryFields}
+                  records={(categories.data ?? []).map((item) => ({
+                    id: item.id,
+                    title: item.name,
+                    subtitle: item.description ?? "Sin descripción",
+                    name: item.name,
+                    description: item.description ?? "",
+                    sort_order: item.sort_order,
+                    is_active: item.is_active,
+                  }))}
+                  saveAction={saveCategory}
+                  deleteAction={deleteCategory}
+                />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
           <TabsContent value="floor" className="space-y-6">
             <AdminCrud
@@ -575,6 +613,7 @@ export default async function AdminPage() {
                 subtitle: `Atención ${item.attention_minutes} min · Crítico ${item.critical_minutes} min`,
                 name: item.name,
                 station_type: item.station_type,
+                sends_to_kitchen: item.sends_to_kitchen,
                 attention_minutes: item.attention_minutes,
                 delayed_minutes: item.delayed_minutes,
                 critical_minutes: item.critical_minutes,
@@ -651,12 +690,15 @@ export default async function AdminPage() {
             />
           </TabsContent>
           <TabsContent value="team">
+            <SecurityPinForm />
             <AdminCrud
               title="Usuarios y accesos"
               description={
-                hasSupabaseAdminKey()
-                  ? "Altas, roles, suspensión, correo y cambio seguro de contraseña."
-                  : "Configura SUPABASE_SECRET_KEY para habilitar correos, contraseñas, altas y bajas Auth."
+                !permissions["users.manage"]
+                  ? "Tu rol no tiene permiso para administrar usuarios."
+                  : managedUsers?.error
+                    ? "No se pudo conectar con el servicio seguro de usuarios. Revisa la conexión e inténtalo de nuevo."
+                    : "Altas, roles, suspensión, correo y cambio seguro de contraseña."
               }
               createLabel="Nuevo usuario"
               emptyLabel="No hay usuarios visibles."
@@ -1011,7 +1053,8 @@ function SalesIntelligence({
       <section className="overflow-hidden rounded-[1.75rem] border border-white bg-white/90 shadow-sm">
         <div className="border-b px-6 py-5">
           <h2 className="text-xl font-semibold">
-            Rendimiento preciso · últimos 30 días
+            Rendimiento preciso · últimos{" "}
+            {Number(settings?.lookback_days ?? 30)} días
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             Sólo órdenes no canceladas. El costo estimado proviene de recetas e

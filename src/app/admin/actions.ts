@@ -7,7 +7,6 @@ import OpenAI from "openai";
 import { z } from "zod";
 
 import { type AdminPermission, requireAdminPermission } from "@/lib/auth/admin";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const uuid = z.string().uuid();
 const optionalUuid = z.union([uuid, z.literal("")]).transform((v) => v || null);
@@ -47,6 +46,29 @@ async function writeAudit(
 function done() {
   revalidatePath("/admin");
   revalidatePath("/dashboard");
+}
+
+async function invokeUserManagement(
+  ctx: Awaited<ReturnType<typeof requireAdminPermission>>,
+  body: Record<string, unknown>,
+) {
+  const { error } = await ctx.supabase.functions.invoke("mobile-admin-users", {
+    body: {
+      operation: body.operation,
+      user: body.user,
+    },
+  });
+  if (!error) return;
+
+  let message = error.message;
+  if ("context" in error && error.context instanceof Response) {
+    const payload = (await error.context
+      .clone()
+      .json()
+      .catch(() => null)) as { error?: string } | null;
+    if (payload?.error) message = payload.error;
+  }
+  throw new Error(`No se pudo administrar el usuario: ${message}`);
 }
 
 export async function saveBrand(formData: FormData) {
@@ -159,81 +181,68 @@ export async function generateBrandLogo(formData: FormData) {
   done();
 }
 
-export async function saveUser(formData: FormData) {
-  const ctx = await context("users.manage");
-  const schema = z.object({
-    id: z.union([uuid, z.literal("")]),
-    email: z.string().email(),
-    password: z.union([z.string().min(12), z.literal("")]),
-    fullName: shortText,
-    employeeNumber: z.string().trim().max(30),
-    branchId: optionalUuid,
-    roleId: optionalUuid,
-  });
-  const data = schema.parse({
-    id: value(formData, "id"),
-    email: value(formData, "email"),
-    password: value(formData, "password"),
-    fullName: value(formData, "full_name"),
-    employeeNumber: value(formData, "employee_number"),
-    branchId: value(formData, "branch_id"),
-    roleId: value(formData, "role_id"),
-  });
-  const admin = createSupabaseAdminClient();
-
-  if (data.id) {
-    if (data.id === ctx.user.id && !checked(formData, "is_active")) {
-      throw new Error("No puedes suspender tu propia cuenta.");
+export async function saveUser(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const ctx = await context("users.manage");
+    const schema = z.object({
+      id: z.union([uuid, z.literal("")]),
+      email: z.string().email(),
+      password: z.union([z.string().min(12), z.literal("")]),
+      fullName: shortText,
+      employeeNumber: z.string().trim().max(30),
+      branchId: optionalUuid,
+      roleId: optionalUuid,
+    });
+    const data = schema.parse({
+      id: value(formData, "id"),
+      email: value(formData, "email"),
+      password: value(formData, "password"),
+      fullName: value(formData, "full_name"),
+      employeeNumber: value(formData, "employee_number"),
+      branchId: value(formData, "branch_id"),
+      roleId: value(formData, "role_id"),
+    });
+    const operation = data.id ? "update" : "create";
+    if (operation === "create" && data.password.length < 12) {
+      return {
+        ok: false,
+        error:
+          "La contraseña inicial es obligatoria y debe tener al menos 12 caracteres.",
+      };
     }
-    const authUpdate = await admin.auth.admin.updateUserById(data.id, {
-      email: data.email,
-      ...(data.password ? { password: data.password } : {}),
-      user_metadata: {
-        organization_id: ctx.profile.organization_id,
-        branch_id: data.branchId,
-        role_id: data.roleId,
-        employee_number: data.employeeNumber || null,
-        full_name: data.fullName,
+    await invokeUserManagement(ctx, {
+      operation,
+      user: {
+        id: data.id || undefined,
+        email: data.email,
+        password: data.password,
+        fullName: data.fullName,
+        employeeNumber: data.employeeNumber,
+        branchId: data.branchId,
+        roleId: data.roleId,
+        isActive: checked(formData, "is_active"),
       },
     });
-    if (authUpdate.error) throw authUpdate.error;
-    const { error } = await ctx.supabase
-      .from("user_profiles")
-      .update({
-        branch_id: data.branchId,
-        role_id: data.roleId,
-        employee_number: data.employeeNumber || null,
-        full_name: data.fullName,
-        is_active: checked(formData, "is_active"),
-      })
-      .eq("id", data.id)
-      .eq("organization_id", ctx.profile.organization_id);
-    if (error) throw error;
-    await writeAudit(ctx, "user.updated", "user_profile", data.id, {
-      email: data.email,
-      password_changed: Boolean(data.password),
-    });
-  } else {
-    if (!data.password)
-      throw new Error("La contraseña inicial es obligatoria.");
-    const { data: created, error } = await admin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
-      email_confirm: true,
-      user_metadata: {
-        organization_id: ctx.profile.organization_id,
-        branch_id: data.branchId,
-        role_id: data.roleId,
-        employee_number: data.employeeNumber || null,
-        full_name: data.fullName,
-      },
-    });
-    if (error) throw error;
-    await writeAudit(ctx, "user.created", "user_profile", created.user.id, {
-      email: data.email,
-    });
+    done();
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        ok: false,
+        error:
+          "Revisa nombre, correo, sucursal, rol y contraseña; la contraseña inicial debe tener al menos 12 caracteres.",
+      };
+    }
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar el usuario. Revisa la conexión e inténtalo otra vez.",
+    };
   }
-  done();
 }
 
 export async function deleteUser(formData: FormData) {
@@ -241,11 +250,34 @@ export async function deleteUser(formData: FormData) {
   const id = uuid.parse(value(formData, "id"));
   if (id === ctx.user.id)
     throw new Error("No puedes eliminar tu propia cuenta.");
-  const admin = createSupabaseAdminClient();
-  const { error } = await admin.auth.admin.deleteUser(id);
-  if (error) throw error;
+  await invokeUserManagement(ctx, { operation: "delete", user: { id } });
   await writeAudit(ctx, "user.deleted", "user_profile", id);
   done();
+}
+
+export async function setAdminSecurityPinAction(
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const ctx = await context("users.manage");
+    const pin = value(formData, "admin_pin");
+    if (!/^\d{4,8}$/.test(pin)) {
+      return { ok: false, error: "El NIP debe contener entre 4 y 8 dígitos." };
+    }
+    const confirmation = value(formData, "admin_pin_confirmation");
+    if (pin !== confirmation) {
+      return { ok: false, error: "La confirmación del NIP no coincide." };
+    }
+    const { error } = await ctx.supabase.rpc("set_admin_security_pin", {
+      requested_user_id: ctx.user.id,
+      candidate_pin: pin,
+    });
+    if (error) return { ok: false, error: error.message };
+    done();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "No se pudo guardar el NIP." };
+  }
 }
 
 export async function saveCategory(formData: FormData) {
@@ -400,6 +432,7 @@ export async function saveStation(formData: FormData) {
       station_type: z
         .enum(["cold_kitchen", "hot_kitchen", "bar", "expedition"])
         .parse(value(formData, "station_type")),
+      sends_to_kitchen: checked(formData, "sends_to_kitchen"),
       attention_minutes: z.coerce
         .number()
         .int()
@@ -529,7 +562,12 @@ export async function saveRecommendationSettings(formData: FormData) {
       .min(7)
       .max(365)
       .parse(value(formData, "lookback_days")),
-    recommendation_message: value(formData, "recommendation_message") || null,
+    recommendation_message:
+      z
+        .string()
+        .trim()
+        .max(500)
+        .parse(value(formData, "recommendation_message")) || null,
     is_active: checked(formData, "is_active"),
   };
   const { error } = await ctx.supabase
