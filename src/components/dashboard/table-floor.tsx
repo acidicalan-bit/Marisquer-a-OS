@@ -23,7 +23,13 @@ const statusLabel: Record<string, string> = {
   blocked: "Bloqueada",
 };
 
-export function TableFloor({ tables }: { tables: RestaurantTable[] }) {
+export function TableFloor({
+  tables,
+  markTableCleanAction,
+}: {
+  tables: RestaurantTable[];
+  markTableCleanAction?: (formData: FormData) => void | Promise<void>;
+}) {
   return (
     <Card className="lg:col-span-2">
       <CardHeader className="flex-row items-center justify-between">
@@ -38,11 +44,11 @@ export function TableFloor({ tables }: { tables: RestaurantTable[] }) {
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {tables.map((table) => (
-              <button
-                key={table.id}
-                type="button"
-                className="touch-target bg-card hover:border-primary/40 focus-visible:ring-ring min-h-28 rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2"
-              >
+              <div key={table.id}>
+                <button
+                  type="button"
+                  className="touch-target bg-card hover:border-primary/40 focus-visible:ring-ring min-h-28 w-full rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2"
+                >
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-lg font-semibold">{table.name}</span>
                   <span
@@ -59,7 +65,19 @@ export function TableFloor({ tables }: { tables: RestaurantTable[] }) {
                 >
                   {statusLabel[table.status] ?? table.status}
                 </Badge>
-              </button>
+                </button>
+                {table.status === "needs_cleaning" && markTableCleanAction && (
+                  <form action={markTableCleanAction} className="mt-2">
+                    <input type="hidden" name="table_id" value={table.id} />
+                    <button
+                      type="submit"
+                      className="min-h-11 w-full rounded-xl bg-teal-900 px-3 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
+                    >
+                      Marcar mesa limpia
+                    </button>
+                  </form>
+                )}
+              </div>
             ))}
           </div>
         )}

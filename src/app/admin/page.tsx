@@ -38,6 +38,7 @@ import { AdminCrud, type AdminField } from "@/components/admin/admin-crud";
 import { BrandStudio } from "@/components/admin/brand-studio";
 import { ConnectionAddress } from "@/components/admin/connection-address";
 import { SecurityPinForm } from "@/components/admin/security-pin-form";
+import { WaiterPinForm } from "@/components/admin/waiter-pin-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -87,7 +88,7 @@ export default async function AdminPage() {
       .from("branches")
       .select("id, name, logo_url, brand_settings")
       .maybeSingle(),
-    supabase.from("roles").select("id, name").order("name"),
+    supabase.from("roles").select("id, name, code").order("name"),
     supabase
       .from("user_profiles")
       .select("id, full_name, employee_number, branch_id, role_id, is_active")
@@ -691,6 +692,10 @@ export default async function AdminPage() {
           </TabsContent>
           <TabsContent value="team">
             <SecurityPinForm />
+            <WaiterPinForm users={(users.data ?? []).filter((item) => {
+              const role = (roles.data ?? []).find((candidate) => candidate.id === item.role_id);
+              return role?.code === "waiter" || role?.code === "captain";
+            }).map((item) => ({ id: String(item.id), label: `${item.full_name}${item.employee_number ? ` · ${item.employee_number}` : ""}` }))} />
             <AdminCrud
               title="Usuarios y accesos"
               description={

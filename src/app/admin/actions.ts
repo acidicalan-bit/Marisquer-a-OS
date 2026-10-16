@@ -280,6 +280,33 @@ export async function setAdminSecurityPinAction(
   }
 }
 
+export async function setEmployeePinAction(
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const ctx = await context("users.manage");
+    const targetUserId = uuid.parse(value(formData, "employee_user_id"));
+    const pin = value(formData, "employee_pin");
+    const confirmation = value(formData, "employee_pin_confirmation");
+    if (!/^\d{4,8}$/.test(pin)) {
+      return { ok: false, error: "El NIP debe contener entre 4 y 8 dígitos." };
+    }
+    if (pin !== confirmation) {
+      return { ok: false, error: "La confirmación del NIP no coincide." };
+    }
+    const { error } = await ctx.supabase.rpc("set_employee_pin", {
+      requested_user_id: targetUserId,
+      candidate_pin: pin,
+    });
+    if (error) return { ok: false, error: error.message };
+    await writeAudit(ctx, "employee.pin_changed", "user_profile", targetUserId);
+    done();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "No se pudo guardar el NIP." };
+  }
+}
+
 export async function saveCategory(formData: FormData) {
   const ctx = await context("menu.manage");
   const id = optionalUuid.parse(value(formData, "id"));

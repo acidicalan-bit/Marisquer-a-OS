@@ -17,6 +17,24 @@ const itemSchema = z.object({
 
 export type WaiterOrderState = { error?: string; success?: string };
 
+export async function markTableCleanAction(formData: FormData) {
+  const { supabase } = await requireRoleAction([
+    "administrator",
+    "manager",
+    "captain",
+    "host",
+  ]);
+  const tableId = uuid.parse(String(formData.get("table_id") ?? ""));
+  const { data, error } = await supabase.rpc("mark_table_clean", {
+    requested_table_id: tableId,
+  });
+  if (error || data !== true) {
+    throw new Error("La mesa ya cambió de estado o no tienes permiso para liberarla.");
+  }
+  revalidatePath("/dashboard");
+  revalidatePath("/host");
+}
+
 export async function cancelWaiterOrderItemAction(
   _previous: WaiterOrderState,
   formData: FormData,

@@ -28,4 +28,24 @@ describe("TableFloor", () => {
     render(<TableFloor tables={[]} />);
     expect(screen.getByText(/no hay mesas visibles/i)).toBeInTheDocument();
   });
+
+  it("ofrece liberar una mesa pendiente de limpieza", () => {
+    const markTableCleanAction = async () => {};
+    render(
+      <TableFloor
+        tables={[
+          {
+            id: "mesa-8",
+            name: "Mesa 8",
+            capacity: 4,
+            status: "needs_cleaning",
+            section: null,
+          },
+        ]}
+        markTableCleanAction={markTableCleanAction}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /marcar mesa limpia/i })).toBeInTheDocument();
+  });
 });
