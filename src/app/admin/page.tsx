@@ -426,7 +426,7 @@ export default async function AdminPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_8%_0%,rgba(20,184,166,.10),transparent_30%),radial-gradient(circle_at_92%_4%,rgba(245,158,11,.10),transparent_28%),#f7f8f6] pb-24">
+    <main className="admin-page min-h-screen bg-[radial-gradient(circle_at_8%_0%,rgba(20,184,166,.10),transparent_30%),radial-gradient(circle_at_92%_4%,rgba(245,158,11,.10),transparent_28%),#f7f8f6] pb-24">
       <header className="sticky top-0 z-30 border-b border-white/70 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex h-17 max-w-[1500px] items-center gap-3 px-4 sm:px-7">
           <Button asChild size="icon" variant="ghost">

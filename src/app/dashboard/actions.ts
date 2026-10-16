@@ -168,6 +168,9 @@ function formatOrderSubmissionError(raw: string): string {
   if (lower.includes("failed to parse filter")) {
     return "La sesión recibió un filtro inválido del servidor. Cierra sesión, vuelve a entrar y reintenta.";
   }
+  if (lower.includes("sesión requerida") || lower.includes("session required") || lower.includes("jwt")) {
+    return "Tu sesión expiró. Vuelve a entrar y reintenta la comanda; no se registró ningún pedido.";
+  }
   if (message.length > 0 && message.length <= 180) {
     return `Supabase rechazó la comanda: ${message}`;
   }

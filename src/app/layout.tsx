@@ -75,6 +75,12 @@ const dashboardFallbackCss = `
 .dashboard-page [role="tablist"]{background:#fff;border:1px solid #cbd9d7;box-shadow:0 4px 12px rgba(8,47,54,.12);gap:10px!important;padding:8px!important}
 .dashboard-page [role="tab"]{min-width:0;min-height:46px;padding:8px;white-space:normal;overflow-wrap:anywhere;line-height:1.15;text-align:center;color:#31545b;background:#f8fbfa;border:1px solid #d7e2df;font-weight:700}
 .dashboard-page [role="tab"][data-state="active"]{color:#fff;background:#0f766e;border-color:#0f766e}
+.admin-page [role="tablist"]{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px!important;align-items:stretch;overflow:visible!important;padding:8px!important;background:#fff;border:1px solid #cbd9d7;border-radius:14px;box-shadow:0 4px 12px rgba(8,47,54,.12)}
+.admin-page [role="tab"]{min-width:0;min-height:48px;padding:9px 8px;white-space:normal;overflow-wrap:anywhere;line-height:1.15;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;color:#31545b;background:#f8fbfa;border:1px solid #d7e2df;border-radius:10px;font-weight:700}
+.admin-page [role="tab"] svg{flex:0 0 auto}
+.admin-page [role="tab"][data-state="active"]{color:#fff;background:#0f766e;border-color:#0f766e}
+.admin-page form,.admin-page [role="tabpanel"],.admin-page .grid{min-width:0}
+.admin-page input,.admin-page select,.admin-page textarea{max-width:100%;min-width:0}
 `;
 
 const geistSans = Geist({
