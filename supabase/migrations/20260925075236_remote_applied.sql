@@ -1,0 +1,1 @@
+-- Migración aplicada previamente en el proyecto remoto marisqueria-os.
