@@ -290,15 +290,15 @@
         <p class="eyebrow">Conexión inteligente</p>
         <h1>Marisquería OS</h1>
         <p class="muted">
-          Buscaremos automáticamente el servidor Barlovento en esta red. La PC y este dispositivo deben estar conectados al mismo Wi-Fi.
+          Conectaremos automáticamente con el servidor central. Este dispositivo solo necesita Internet.
         </p>
         <form id="connection-form">
-          <label for="server">Dirección de la PC (solo si necesitas configurarla manualmente)</label>
+          <label for="server">Dirección del servidor (solo si necesitas configurarla manualmente)</label>
           <input
             id="server"
             inputmode="url"
             autocomplete="url"
-            placeholder="Se detecta automáticamente; o escribe http://IP-DE-LA-PC:3210"
+            placeholder="Se detecta automáticamente; o escribe la dirección HTTPS del servidor"
             value=""
             required
           />
@@ -325,7 +325,7 @@
       <main class="content">
         <div class="notice">
           Trabajas con la última copia segura de esta sucursal. Tus acciones se
-          sincronizarán una sola vez cuando vuelva la PC.
+          sincronizarán una sola vez cuando vuelva la conexión.
         </div>
         <div id="offline-content"></div>
       </main>
@@ -341,9 +341,9 @@
       const offline = document.querySelector("#offline");
       const offlineContent = document.querySelector("#offline-content");
       const queueBadge = document.querySelector("#queue-badge");
-      // No fijamos una IP: la red puede cambiar. El plugin nativo descubre la PC
-      // por UDP y sólo se usa una dirección manual cuando el usuario la escribe.
-      const defaultServer = "";
+      // El APK de producción queda enlazado al servidor cloud. La URL es pública;
+      // las credenciales y permisos siguen viviendo en Supabase y en el servidor.
+      const defaultServer = "https://marisqueria-os.onrender.com";
       const SNAPSHOT_KEY = "marisqueria_offline_snapshot_v1";
       const QUEUE_KEY = "marisqueria_offline_queue_v1";
       const SERVER_KEY = "marisqueria_pc_url";
@@ -700,21 +700,21 @@
       }
       async function connect(raw, automatic = false) {
         error.textContent = "";
-        status.textContent = "Buscando la PC principal…";
+        status.textContent = "Conectando con el servidor central…";
         submit.disabled = true;
         try {
           let base = raw ? normalize(raw) : null;
           if (!base || !(await verify(base))) {
-            status.textContent = "Buscando Barlovento automáticamente en el Wi-Fi…";
+            status.textContent = "Comprobando la conexión segura…";
             base = await discoverServer();
             if (!base) {
-              status.textContent = "No encontramos la PC. Verifica que esté encendida, con Barlovento abierto y en el mismo Wi-Fi.";
+              status.textContent = "No se pudo contactar el servidor. Verifica tu conexión a Internet.";
               if (automatic) await showOffline();
               return;
             }
             input.value = base;
           }
-          status.textContent = "PC encontrada. Sincronizando…";
+          status.textContent = "Servidor disponible. Sincronizando…";
           await setValue(SERVER_KEY, base);
           window.location.replace(base + rolePath[currentRole]);
         } catch (reason) {
