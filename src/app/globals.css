@@ -183,10 +183,22 @@
    envolver su texto en vez de invadirse entre sí. */
 .dashboard-page [data-slot="tabs-trigger"] {
   min-width: 0;
+  height: auto;
+  min-height: 3rem;
   white-space: normal;
   overflow-wrap: anywhere;
   text-align: center;
   line-height: 1.15;
+}
+
+/* TabsList trae una altura fija del componente base; en el dashboard móvil
+   eso hacía que las cuatro acciones invadieran la captura de pedidos. */
+.dashboard-page [data-slot="tabs-list"] {
+  display: grid;
+  height: auto;
+  min-height: 0;
+  align-items: stretch;
+  gap: 0.25rem;
 }
 
 /* Refuerza el contraste de textos secundarios sobre el fondo crema, incluido

@@ -344,6 +344,7 @@
       // El APK de producción queda enlazado al servidor cloud. La URL es pública;
       // las credenciales y permisos siguen viviendo en Supabase y en el servidor.
       const defaultServer = "https://marisqueria-os.onrender.com";
+      const VERIFY_TIMEOUT_MS = 60000;
       const SNAPSHOT_KEY = "marisqueria_offline_snapshot_v1";
       const QUEUE_KEY = "marisqueria_offline_queue_v1";
       const SERVER_KEY = "marisqueria_pc_url";
@@ -438,7 +439,7 @@
           }
         }
         const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 5000);
+        const timeout = window.setTimeout(() => controller.abort(), VERIFY_TIMEOUT_MS);
         try {
           const response = await fetch(`${base}/api/health`, {
             cache: "no-store",
@@ -733,7 +734,7 @@
       }
       form.addEventListener("submit", (event) => {
         event.preventDefault();
-        void connect(input.value.trim());
+        void connect(input.value.trim() || defaultServer);
       });
       document.querySelector("#retry").addEventListener("click", async () => {
         const saved = await getValue(SERVER_KEY);

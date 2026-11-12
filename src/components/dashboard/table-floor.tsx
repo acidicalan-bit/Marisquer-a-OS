@@ -19,7 +19,7 @@ const statusLabel: Record<string, string> = {
   eating: "Comiendo",
   check_requested: "Cuenta",
   paying: "Pagando",
-  needs_cleaning: "Por limpiar",
+  needs_cleaning: "Por revisar",
   blocked: "Bloqueada",
 };
 

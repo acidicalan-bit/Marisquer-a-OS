@@ -35,7 +35,7 @@ describe("WaiterOrderComposer", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Selecciona la mesa" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Selecciona la mesa o cuenta abierta" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /mesa 1.*terraza/i }));
     expect(screen.getByRole("heading", { name: "¿Qué van a ordenar?" })).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { name: /platillo/i })).toHaveLength(12);
@@ -46,6 +46,24 @@ describe("WaiterOrderComposer", () => {
     expect(screen.getByRole("heading", { name: "Revisa antes de enviar" })).toBeInTheDocument();
     expect(screen.getByText("1 × Platillo 1")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirmar y enviar a cocina" })).toBeEnabled();
+  });
+
+  it("permite elegir una mesa ocupada para agregar productos a su cuenta abierta", async () => {
+    const user = userEvent.setup();
+    render(
+      <WaiterOrderComposer
+        tables={[{ ...tables[0], status: "occupied" }]}
+        menu={menu}
+        initialOrderId="00000000-0000-4000-8000-000000000007"
+        initialEventId="00000000-0000-4000-8000-000000000008"
+        deviceId="00000000-0000-4000-8000-000000000009"
+      />,
+    );
+
+    const table = screen.getByRole("button", { name: /mesa 1.*cuenta abierta/i });
+    expect(table).toBeEnabled();
+    await user.click(table);
+    expect(screen.getByRole("heading", { name: "¿Qué van a ordenar?" })).toBeInTheDocument();
   });
 
   it("permite navegar por las páginas de productos sin una lista interminable", async () => {
