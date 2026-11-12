@@ -510,7 +510,7 @@
           occupied: "Ocupada",
           check_requested: "Pide cuenta",
           paying: "Pagando",
-          needs_cleaning: "Por limpiar",
+          needs_cleaning: "Libre",
           blocked: "Bloqueada",
         };
         return labels[statusValue] || statusValue;
@@ -603,7 +603,7 @@
         }
 
         const selectedTable = snapshot.tables.find((table) => table.id === selectedTableId);
-        const tablesHtml = snapshot.tables.map((table) => `<button type="button" class="table-button ${selectedTableId === table.id ? "selected" : ""}" data-select-table="${escapeHtml(table.id)}" ${!["free", "occupied"].includes(table.status) ? "disabled" : ""}><strong>${escapeHtml(table.name)}</strong><small>${escapeHtml(tableStatus(table.status))} · ${table.capacity} lugares</small></button>`).join("");
+        const tablesHtml = snapshot.tables.map((table) => `<button type="button" class="table-button ${selectedTableId === table.id ? "selected" : ""}" data-select-table="${escapeHtml(table.id)}" ${!["free", "occupied", "needs_cleaning"].includes(table.status) ? "disabled" : ""}><strong>${escapeHtml(table.name)}</strong><small>${escapeHtml(tableStatus(table.status))} · ${table.capacity} lugares</small></button>`).join("");
         const categories = ["Todas", ...new Set(snapshot.menu.map((item) => item.categoryName || "Sin categoría").filter((name) => name !== "Todas"))];
         const products = snapshot.menu.filter((item) => item.available && (selectedCategory === "Todas" || (item.categoryName || "Sin categoría") === selectedCategory) && `${item.name} ${item.categoryName || ""}`.toLocaleLowerCase("es-MX").includes(searchQuery.toLocaleLowerCase("es-MX")));
         const pages = Math.max(1, Math.ceil(products.length / menuPageSize));
@@ -615,7 +615,7 @@
         const stepNavigation = `<div class="screen-switch" aria-label="Pasos de la comanda"><button type="button" data-order-step="table" class="${orderStep === "table" ? "active" : ""}">1 · Mesa</button><button type="button" data-order-step="menu" class="${orderStep === "menu" ? "active" : ""}" ${!selectedTable ? "disabled" : ""}>2 · Carta</button><button type="button" data-order-step="review" class="${orderStep === "review" ? "active" : ""}" ${!units ? "disabled" : ""}>3 · Revisar (${units})</button></div>`;
         let orderContent = "";
         if (orderStep === "table") {
-          orderContent = `<div class="section-heading"><div><small>Paso 1 de 3 · ${snapshot.tables.filter((table) => table.status === "free").length} libres</small><h2>Selecciona una mesa</h2></div></div>${snapshot.tables.length ? `<div class="table-grid">${tablesHtml}</div>` : `<article class="card"><p>No hay mesas configuradas para esta sucursal.</p></article>`}`;
+          orderContent = `<div class="section-heading"><div><small>Paso 1 de 3 · ${snapshot.tables.filter((table) => ["free", "needs_cleaning"].includes(table.status)).length} libres</small><h2>Selecciona una mesa</h2></div></div>${snapshot.tables.length ? `<div class="table-grid">${tablesHtml}</div>` : `<article class="card"><p>No hay mesas configuradas para esta sucursal.</p></article>`}`;
         } else if (orderStep === "menu") {
           orderContent = `<article class="card table-selected"><div><small>Paso 2 de 3 · Mesa seleccionada</small><h2>${escapeHtml((selectedTable && selectedTable.name) || "Elige una mesa")}</h2><p>${escapeHtml((selectedTable && selectedTable.sectionName) || "")}</p></div><button type="button" class="action secondary" data-order-step="table">Cambiar mesa</button></article><div class="section-heading"><div><small>Categorías y búsqueda</small><h2>¿Qué van a ordenar?</h2></div></div><input class="menu-search" id="menu-search" placeholder="Buscar platillo o bebida" aria-label="Buscar platillo o bebida" value="${escapeHtml(searchQuery)}"><div class="category-list" aria-label="Categorías">${categories.map((item) => `<button type="button" class="category-chip ${selectedCategory === item ? "active" : ""}" data-category="${escapeHtml(item)}">${escapeHtml(item)}</button>`).join("")}</div>${menuHtml ? `<div class="menu-cards">${menuHtml}</div>` : `<article class="card"><p>No hay productos en esta categoría o búsqueda.</p></article>`}${products.length > menuPageSize ? `<div class="screen-switch menu-pagination"><button type="button" class="secondary" data-menu-page="prev" ${menuPage <= 1 ? "disabled" : ""}>‹ Anterior</button><span>Página ${menuPage} de ${pages} · ${products.length} productos</span><button type="button" class="secondary" data-menu-page="next" ${menuPage >= pages ? "disabled" : ""}>Siguiente ›</button></div>` : ""}<section class="order-summary"><div><small>Pedido actual</small><h2>${units} artículos · ${money(cents)}</h2></div><button class="action" type="button" id="review-order" ${!units ? "disabled" : ""}>Revisar comanda</button></section>`;
         } else {
