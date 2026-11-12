@@ -19,7 +19,7 @@ const statusLabel: Record<string, string> = {
   eating: "Comiendo",
   check_requested: "Cuenta",
   paying: "Pagando",
-  needs_cleaning: "Por revisar",
+  needs_cleaning: "Libre",
   blocked: "Bloqueada",
 };
 
@@ -43,6 +43,9 @@ export function TableFloor({
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {tables.map((table) => (
               <div key={table.id}>
+                {(() => {
+                  const available = table.status === "free" || table.status === "needs_cleaning";
+                  return (
                 <button
                   type="button"
                   className="touch-target bg-card hover:border-primary/40 focus-visible:ring-ring min-h-28 w-full rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2"
@@ -50,7 +53,7 @@ export function TableFloor({
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-lg font-semibold">{table.name}</span>
                   <span
-                    className={`size-2.5 rounded-full ${table.status === "free" ? "bg-emerald-500" : "bg-amber-500"}`}
+                    className={`size-2.5 rounded-full ${available ? "bg-emerald-500" : "bg-amber-500"}`}
                   />
                 </div>
                 <p className="text-muted-foreground mt-1 text-xs">
@@ -59,11 +62,13 @@ export function TableFloor({
                 </p>
                 <Badge
                   className="mt-4"
-                  variant={table.status === "free" ? "secondary" : "outline"}
+                  variant={available ? "secondary" : "outline"}
                 >
                   {statusLabel[table.status] ?? table.status}
                 </Badge>
                 </button>
+                  );
+                })()}
               </div>
             ))}
           </div>

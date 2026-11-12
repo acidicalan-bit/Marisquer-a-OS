@@ -265,7 +265,7 @@ export default async function DashboardPage() {
           />
           <StatCard
             label="Disponibles"
-            value={tables.filter((table) => table.status === "free").length}
+            value={tables.filter((table) => table.status === "free" || table.status === "needs_cleaning").length}
             detail="listas para abrir"
             icon={UsersRound}
           />
