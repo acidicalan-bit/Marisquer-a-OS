@@ -7,13 +7,19 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Message = { role: "user" | "assistant"; content: string };
+type AssistantMode = "hybrid" | "openai" | "local";
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+  mode?: Exclude<AssistantMode, "hybrid">;
+};
 
 export function AiConcierge() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [mode, setMode] = useState<AssistantMode>("hybrid");
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -42,20 +48,27 @@ export function AiConcierge() {
       const data = (await response.json()) as {
         answer?: string;
         error?: string;
+        mode?: "openai" | "local";
       };
+      if (!response.ok) setMode("hybrid");
+      if (data.mode) setMode(data.mode);
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
           content: data.answer ?? data.error ?? "No pude responder ahora.",
+          mode: data.mode,
         },
       ]);
     } catch {
+      setMode("local");
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
-          content: "No pude conectar con el asistente. Intenta de nuevo.",
+          content:
+            "El servidor local no está disponible. Tus datos no se perdieron; revisa la conexión e intenta de nuevo.",
+          mode: "local",
         },
       ]);
     } finally {
@@ -73,12 +86,26 @@ export function AiConcierge() {
             </span>
             <div className="flex-1">
               <p className="font-semibold">Mar · Copiloto</p>
-              <p className="text-xs text-white/50">Impulsado por OpenAI</p>
+              <p
+                className={
+                  mode === "local"
+                    ? "text-xs text-amber-300"
+                    : "text-xs text-white/50"
+                }
+                aria-live="polite"
+              >
+                {mode === "openai"
+                  ? "OpenAI conectado · respaldo local listo"
+                  : mode === "local"
+                    ? "Cerebro local inteligente · sin consumo de crédito"
+                    : "IA + cerebro local de respaldo"}
+              </p>
             </div>
             <Button
               size="icon"
               variant="ghost"
               onClick={() => setOpen(false)}
+              aria-label="Cerrar copiloto"
               className="text-white/60 hover:bg-white/10 hover:text-white"
             >
               <X />
@@ -95,6 +122,11 @@ export function AiConcierge() {
                 }
               >
                 {item.content}
+                {item.role === "assistant" && item.mode === "local" && (
+                  <span className="mt-2 block text-[11px] font-semibold tracking-wide text-amber-700 uppercase">
+                    Respuesta del cerebro local
+                  </span>
+                )}
               </div>
             ))}
             {loading && (
@@ -111,12 +143,14 @@ export function AiConcierge() {
                 if (event.key === "Enter") void send();
               }}
               placeholder="Pregunta o pide ayuda…"
+              aria-label="Mensaje para Mar"
               className="rounded-xl"
             />
             <Button
               size="icon"
               onClick={() => void send()}
               disabled={loading || !message.trim()}
+              aria-label="Enviar mensaje"
               className="shrink-0 rounded-xl bg-teal-900 hover:bg-teal-800"
             >
               <Send className="size-4" />

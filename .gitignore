@@ -23,6 +23,7 @@
 /build
 /dist-installers
 /electron/runtime-config.json
+/print-hub/runtime-config.json
 /.desktop-build
 /tmp
 

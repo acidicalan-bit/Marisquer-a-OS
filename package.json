@@ -4,10 +4,13 @@
   "description": "Sistema operativo premium para administración de restaurantes y marisquerías.",
   "author": "Marisquería OS",
   "private": true,
+  "browserslist": [
+    "chrome 75"
+  ],
   "main": "electron/main.mjs",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack && node scripts/flatten-legacy-css.mjs && node scripts/transpile-legacy-js.mjs",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
@@ -19,6 +22,7 @@
     "format:check": "prettier --check .",
     "mobile:add": "cap add android",
     "mobile:sync": "cap sync android",
+    "mobile:apk:debug": "npm run mobile:sync && cd android && gradlew.bat assembleAdminDebug assembleServiceDebug assembleCashierDebug",
     "desktop:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "desktop:prepare": "npm run build && node scripts/prepare-desktop.mjs",
     "desktop:pack": "npm run desktop:prepare && electron-builder --projectDir .desktop-build --win nsis"
@@ -53,6 +57,7 @@
   "dependencies": {
     "@capacitor/android": "^8.4.2",
     "@capacitor/core": "^8.4.2",
+    "@capacitor/preferences": "^8.0.1",
     "@hookform/resolvers": "^5.4.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.8",
@@ -78,12 +83,14 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@babel/preset-env": "^8.0.7",
     "@capacitor/cli": "^8.4.2",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/jsdom": "^28.0.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

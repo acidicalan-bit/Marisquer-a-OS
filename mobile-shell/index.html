@@ -5,122 +5,405 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071f29" />
     <title>Marisquería OS</title>
-  </head>
-  <body
-    style="
-      margin: 0;
-      background: radial-gradient(circle at 20% 0, #0d5662, #071f29 45%);
-      color: white;
-      font-family: system-ui;
-      display: grid;
-      min-height: 100vh;
-      place-items: center;
-      padding: 24px;
-      box-sizing: border-box;
-    "
-  >
-    <main
-      style="
-        width: min(100%, 420px);
-        border: 1px solid #ffffff20;
-        background: #ffffff0d;
-        border-radius: 28px;
-        padding: 28px;
+    <style>
+      * {
         box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #f5f2eb;
+        color: #082f36;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button {
+        min-height: 44px;
+        cursor: pointer;
+      }
+      .setup {
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+        padding: 24px;
+        background: radial-gradient(circle at 20% 0, #0d5662, #071f29 45%);
+        color: white;
+      }
+      .setup-card {
+        width: min(100%, 430px);
+        border: 1px solid #ffffff20;
+        border-radius: 28px;
+        background: #ffffff0d;
+        padding: 28px;
         box-shadow: 0 28px 80px #0005;
         backdrop-filter: blur(18px);
-      "
-    >
-      <div
-        style="
-          width: 52px;
-          height: 52px;
-          border-radius: 16px;
-          background: #54e1cf;
-          color: #071f29;
-          display: grid;
-          place-items: center;
-          font-size: 26px;
-        "
-      >
-        ◈
-      </div>
-      <p
-        style="
-          margin: 28px 0 8px;
-          color: #6ee7d8;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-        "
-      >
-        Configuración inicial
-      </p>
-      <h1 style="margin: 0; font-size: 30px; letter-spacing: -0.03em">
-        Conecta con la PC principal.
-      </h1>
-      <p style="color: #ffffff99; line-height: 1.6">
-        Escribe la dirección que muestra Marisquería OS Admin. Se guardará sólo
-        en este dispositivo.
-      </p>
-      <form id="connection-form" style="margin-top: 24px">
-        <label
-          for="server"
-          style="display: block; font-size: 13px; margin-bottom: 8px"
-          >Dirección del servidor</label
-        >
-        <input
-          id="server"
-          inputmode="url"
-          autocomplete="url"
-          placeholder="http://192.168.1.100:3210"
-          required
-          style="
-            width: 100%;
-            height: 48px;
-            border: 1px solid #ffffff25;
-            border-radius: 14px;
-            background: #ffffff12;
-            color: white;
-            padding: 0 14px;
-            box-sizing: border-box;
-            font-size: 16px;
-            outline: none;
-          "
-        />
-        <p
-          id="error"
-          role="alert"
-          style="min-height: 20px; color: #ffb4a8; font-size: 13px"
-        ></p>
-        <button
-          type="submit"
-          style="
-            width: 100%;
-            height: 48px;
-            border: 0;
-            border-radius: 14px;
-            background: #54e1cf;
-            color: #071f29;
-            font-weight: 700;
-            font-size: 15px;
-          "
-        >
-          Conectar
-        </button>
-      </form>
-    </main>
+      }
+      .mark {
+        display: grid;
+        width: 52px;
+        height: 52px;
+        place-items: center;
+        border-radius: 16px;
+        background: #54e1cf;
+        color: #071f29;
+        font-size: 26px;
+      }
+      .eyebrow {
+        margin: 24px 0 8px;
+        color: #5eead4;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.17em;
+        text-transform: uppercase;
+      }
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+      .muted {
+        color: #ffffff99;
+        line-height: 1.55;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        min-height: 48px;
+        border: 1px solid #ffffff25;
+        border-radius: 14px;
+        background: #ffffff12;
+        color: inherit;
+        padding: 0 14px;
+        outline: none;
+      }
+      .primary {
+        width: 100%;
+        border: 0;
+        border-radius: 14px;
+        background: #54e1cf;
+        color: #071f29;
+        font-weight: 800;
+      }
+      .status {
+        min-height: 20px;
+        color: #99f6e4;
+        font-size: 13px;
+      }
+      .error {
+        min-height: 20px;
+        color: #ffb4a8;
+        font-size: 13px;
+      }
+      .offline {
+        display: none;
+        min-height: 100vh;
+      }
+      .offline-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 72px;
+        padding: 12px 16px;
+        background: #072f38f5;
+        color: white;
+        box-shadow: 0 8px 28px #072f3822;
+      }
+      .offline-header .mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+        font-size: 20px;
+      }
+      .grow {
+        flex: 1;
+      }
+      .badge {
+        display: inline-flex;
+        min-height: 28px;
+        align-items: center;
+        border-radius: 999px;
+        background: #f59e0b22;
+        color: #fef3c7;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .retry {
+        border: 1px solid #ffffff33;
+        border-radius: 12px;
+        background: #ffffff10;
+        color: white;
+        padding: 0 12px;
+        font-weight: 700;
+      }
+      .content {
+        width: min(100%, 980px);
+        margin: 0 auto;
+        padding: 20px 16px 100px;
+      }
+      .notice {
+        margin-bottom: 18px;
+        border: 1px solid #f3d38b;
+        border-radius: 18px;
+        background: #fff8e7;
+        padding: 14px 16px;
+        color: #75520d;
+        line-height: 1.45;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .card {
+        border: 1px solid #dce5e3;
+        border-radius: 22px;
+        background: white;
+        padding: 16px;
+        box-shadow: 0 12px 35px #082f360b;
+      }
+      .card h3 {
+        margin: 0 0 6px;
+      }
+      .card p {
+        margin-bottom: 10px;
+        color: #64748b;
+        font-size: 14px;
+      }
+      .table-button {
+        width: 100%;
+        border: 1px solid #dce5e3;
+        border-radius: 18px;
+        background: white;
+        color: #082f36;
+        padding: 14px;
+        text-align: left;
+      }
+      .table-button.selected {
+        border-color: #0f766e;
+        background: #e7faf6;
+      }
+      .action {
+        width: 100%;
+        border: 0;
+        border-radius: 13px;
+        background: #0f766e;
+        color: white;
+        padding: 0 14px;
+        font-weight: 800;
+      }
+      .secondary {
+        border: 1px solid #cbd5e1;
+        background: white;
+        color: #0f4c56;
+      }
+      .menu-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid #edf1f0;
+        padding: 13px 0;
+      }
+      .counter {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .counter button {
+        width: 44px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        background: white;
+        color: #0f4c56;
+        font-size: 20px;
+      }
+      .full {
+        grid-column: 1 / -1;
+      }
+      @media (min-width: 700px) {
+        .grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+      .content { width:min(100%,1080px); padding:18px 16px calc(96px + env(safe-area-inset-bottom)); }
+      .offline-header { min-height:74px; }
+      .screen-switch,.category-list { display:flex; flex-wrap:wrap; gap:8px; overflow-x:auto; padding:2px 1px 8px; }
+      .screen-switch button,.category-chip { min-height:44px; flex:0 0 auto; border:1px solid #d7e2df; border-radius:999px; background:white; color:#32515a; padding:0 16px; font-size:13px; font-weight:800; }
+      .screen-switch button.active,.category-chip.active { border-color:#0f766e; background:#0f766e; color:white; }
+      .section-heading { display:flex; align-items:end; justify-content:space-between; gap:12px; margin:18px 0 10px; }
+      .section-heading h2 { margin:0; font-size:19px; }
+      .section-heading small { color:#64748b; }
+      .table-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+      .table-button { min-height:66px; padding:10px; }
+      .table-button small { display:block; margin-top:4px; color:#64748b; }
+      .menu-search,.line-note,.order-note { min-height:44px; border-color:#dce5e3; background:white; color:#082f36; }
+      .line-note-label { display:block; margin-top:8px; color:#52636b; font-size:11px; font-weight:700; }
+      .allergy-note-label,.allergy-copy { color:#a32727; }
+      .allergy-copy { display:block; margin-top:6px; }
+      .category-chip { min-height:44px; padding:0 13px; font-size:12px; }
+      .menu-cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; min-width:0; }
+      .menu-card { min-width:0; overflow:hidden; border:1px solid #dce5e3; border-radius:17px; background:white; box-shadow:0 8px 24px #082f3609; }
+      .menu-photo { display:block; width:100%; aspect-ratio:1.45; object-fit:cover; background:linear-gradient(135deg,#dff5ee,#fff1d5); }
+      .menu-card-body { padding:9px; }
+      .menu-card h3 { margin:0; min-width:0; overflow-wrap:anywhere; font-size:14px; line-height:1.25; }
+      .menu-card .price { margin:5px 0 8px; color:#0f766e; font-size:13px; font-weight:800; }
+      .menu-card .counter { min-width:0; justify-content:space-between; gap:5px; }
+      .menu-card .counter button { width:44px; min-height:44px; }
+      .line-note { margin-top:8px; font-size:12px; }
+      .order-summary { position:sticky; bottom:8px; z-index:5; margin-top:16px; border:1px solid #dce5e3; border-radius:18px; background:white; padding:14px; box-shadow:0 12px 35px #082f3620; }
+      .order-summary .action { margin-top:10px; }
+      .safe-panel { border:1px solid #e2e8f0; border-radius:20px; background:white; padding:20px; box-shadow:0 12px 35px #082f360b; }
+      .order-line { display:flex; align-items:start; gap:10px; border-bottom:1px solid #edf1f0; padding:10px 0; }
+      .pill { display:inline-flex; border-radius:999px; background:#ecfdf5; color:#166534; padding:4px 9px; font-size:11px; font-weight:800; }
+      @media (max-width:540px) { .offline-header { display:grid; grid-template-columns:42px minmax(0,1fr) auto; gap:9px; padding:10px 12px; } .offline-header .grow { min-width:0; } .offline-header strong { font-size:14px; } .offline-header #offline-branch { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:47vw; } .offline-header .badge { grid-column:2; grid-row:2; width:max-content; } .offline-header .retry { grid-column:3; grid-row:2; min-height:40px; } .menu-cards { grid-template-columns:minmax(0,1fr); } .screen-switch,.category-list { flex-wrap:nowrap; } .menu-card .counter button { flex:0 0 44px; } }
+      @media (min-width:700px) { .menu-cards { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+      @media (min-width:700px) { .table-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    </style>
+  </head>
+  <body>
+    <section class="setup" id="setup">
+      <main class="setup-card">
+        <div class="mark">◈</div>
+        <p class="eyebrow">Conexión inteligente</p>
+        <h1>Marisquería OS</h1>
+        <p class="muted">
+          Buscaremos automáticamente el servidor Barlovento en esta red. La PC y este dispositivo deben estar conectados al mismo Wi-Fi.
+        </p>
+        <form id="connection-form">
+          <label for="server">Dirección de la PC (solo si necesitas configurarla manualmente)</label>
+          <input
+            id="server"
+            inputmode="url"
+            autocomplete="url"
+            placeholder="Se detecta automáticamente; o escribe http://IP-DE-LA-PC:3210"
+            value=""
+            required
+          />
+          <p id="status" class="status" role="status" aria-live="polite"></p>
+          <p id="error" class="error" role="alert"></p>
+          <button class="primary" type="submit">Conectar</button>
+        </form>
+      </main>
+    </section>
+
+    <section class="offline" id="offline">
+      <header class="offline-header">
+        <div class="mark">◈</div>
+        <div class="grow">
+          <strong id="offline-title">Modo local</strong>
+          <div
+            style="font-size: 12px; color: #ffffff99"
+            id="offline-branch"
+          ></div>
+        </div>
+        <span class="badge" id="queue-badge">Sin conexión</span>
+        <button class="retry" id="retry" type="button">Reconectar</button>
+      </header>
+      <main class="content">
+        <div class="notice">
+          Trabajas con la última copia segura de esta sucursal. Tus acciones se
+          sincronizarán una sola vez cuando vuelva la PC.
+        </div>
+        <div id="offline-content"></div>
+      </main>
+    </section>
+
     <script>
       const form = document.querySelector("#connection-form");
       const input = document.querySelector("#server");
       const error = document.querySelector("#error");
+      const status = document.querySelector("#status");
+      const submit = form.querySelector("button[type='submit']");
+      const setup = document.querySelector("#setup");
+      const offline = document.querySelector("#offline");
+      const offlineContent = document.querySelector("#offline-content");
+      const queueBadge = document.querySelector("#queue-badge");
+      // No fijamos una IP: la red puede cambiar. El plugin nativo descubre la PC
+      // por UDP y sólo se usa una dirección manual cuando el usuario la escribe.
+      const defaultServer = "";
+      const SNAPSHOT_KEY = "marisqueria_offline_snapshot_v1";
+      const QUEUE_KEY = "marisqueria_offline_queue_v1";
+      const SERVER_KEY = "marisqueria_pc_url";
       const rolePath = {
         admin: "/admin",
         service: "/dashboard",
+        cashier: "/cash",
         kitchen: "/kitchen",
         host: "/host",
       };
+      let currentRole = "admin";
+      let snapshot = null;
+      let queue = [];
+      let cart = {};
+      let selectedTableId = null;
+      let orderStep = "table";
+      let menuPage = 1;
+      const menuPageSize = 12;
+      let selectedCategory = "Todas";
+      let serviceScreen = "new";
+      let searchQuery = "";
+      let guestCount = 2;
+      let orderNote = "";
+      const lineNotes = {};
+      const lineAllergies = {};
+
+      function preferences() {
+        const capacitor = window.Capacitor;
+        const plugins = capacitor && capacitor.Plugins;
+        return (plugins && plugins.Preferences) || null;
+      }
+      function createId() {
+        if (!window.crypto || typeof window.crypto.getRandomValues !== "function") {
+          throw new Error("Este dispositivo no ofrece un generador seguro de identificadores.");
+        }
+        const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.prototype.map.call(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+        return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10, 16).join("")}`;
+      }
+      function bindIfPresent(selector, eventName, handler, root) {
+        const element = (root || offlineContent).querySelector(selector);
+        if (element) element.addEventListener(eventName, handler);
+      }
+      async function getValue(key) {
+        const plugin = preferences();
+        if (plugin) return (await plugin.get({ key })).value;
+        return localStorage.getItem(key);
+      }
+      async function setValue(key, value) {
+        const plugin = preferences();
+        if (plugin) return plugin.set({ key, value });
+        localStorage.setItem(key, value);
+      }
+      async function removeValue(key) {
+        const plugin = preferences();
+        if (plugin) return plugin.remove({ key });
+        localStorage.removeItem(key);
+      }
       async function role() {
         try {
           return (await (await fetch("./app-role.json")).json()).role;
@@ -128,34 +411,343 @@
           return "admin";
         }
       }
-      async function connect(raw) {
+      function normalize(raw) {
+        const url = new URL(raw.includes("://") ? raw : `http://${raw}`);
+        const privateHost =
+          /^(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
+            url.hostname,
+          );
+        if (
+          url.protocol !== "https:" &&
+          !(url.protocol === "http:" && privateHost)
+        )
+          throw new Error("Usa HTTPS o una dirección privada de la red local.");
+        return url.origin;
+      }
+      async function verify(base) {
+        if (base.indexOf("http://") === 0) {
+          const capacitor = window.Capacitor;
+          const plugins = capacitor && capacitor.Plugins;
+          const plugin = plugins && plugins.ServerDiscovery;
+          if (!plugin || typeof plugin.verifyServer !== "function") return false;
+          try {
+            const result = await plugin.verifyServer({ url: base });
+            return Boolean(result && result.ok === true);
+          } catch {
+            return false;
+          }
+        }
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 5000);
         try {
-          const url = new URL(raw.includes("://") ? raw : `http://${raw}`);
-          const privateHost =
-            /^(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
-              url.hostname,
-            );
-          if (
-            url.protocol !== "https:" &&
-            !(url.protocol === "http:" && privateHost)
-          )
-            throw new Error(
-              "Usa HTTPS o una dirección privada de la red local.",
-            );
-          const base = url.origin;
-          localStorage.setItem("marisqueria_pc_url", base);
-          window.location.replace(base + rolePath[await role()]);
-        } catch (reason) {
-          error.textContent =
-            reason instanceof Error ? reason.message : "Dirección inválida.";
+          const response = await fetch(`${base}/api/health`, {
+            cache: "no-store",
+            signal: controller.signal,
+          });
+          const result = await response.json();
+          return (
+            response.ok &&
+            result.ok === true &&
+            result.service === "marisqueria-os"
+          );
+        } catch {
+          return false;
+        } finally {
+          window.clearTimeout(timeout);
         }
       }
-      const saved = localStorage.getItem("marisqueria_pc_url");
-      if (saved) void connect(saved);
+      async function discoverServer() {
+        const capacitor = window.Capacitor;
+        const plugins = capacitor && capacitor.Plugins;
+        const plugin = plugins && plugins.ServerDiscovery;
+        if (!plugin || typeof plugin.discover !== "function") return null;
+        try {
+          const result = await plugin.discover();
+          for (const candidate of result.servers || []) {
+            if (await verify(candidate)) return normalize(candidate);
+          }
+        } catch {}
+        return null;
+      }
+      function money(cents) {
+        return new Intl.NumberFormat("es-MX", {
+          style: "currency",
+          currency: "MXN",
+        }).format(cents / 100);
+      }
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;");
+      }
+      async function saveState() {
+        await Promise.all([
+          setValue(SNAPSHOT_KEY, JSON.stringify(snapshot)),
+          setValue(QUEUE_KEY, JSON.stringify(queue)),
+        ]);
+        queueBadge.textContent = `${queue.length} pendiente${queue.length === 1 ? "" : "s"}`;
+      }
+      async function enqueue(type, entityId, baseVersion, payload) {
+        queue.push({
+          id: createId(),
+          userId: snapshot.user.id,
+          branchId: snapshot.user.branchId,
+          type,
+          entityId,
+          baseVersion,
+          occurredAt: new Date().toISOString(),
+          payload,
+        });
+        await saveState();
+      }
+      function tableStatus(statusValue) {
+        const labels = {
+          free: "Disponible",
+          reserved: "Reservada",
+          occupied: "Ocupada",
+          check_requested: "Pide cuenta",
+          paying: "Pagando",
+          needs_cleaning: "Por limpiar",
+          blocked: "Bloqueada",
+        };
+        return labels[statusValue] || statusValue;
+      }
+      function renderHost() {
+        offlineContent.innerHTML = `
+          <h2>Mesas</h2>
+          <div class="grid">${snapshot.tables
+            .map(
+              (table) => `
+                <article class="card">
+                  <h3>${escapeHtml(table.name)}</h3>
+                  <p>${table.capacity} personas · ${escapeHtml(tableStatus(table.status))}</p>
+                  <button class="action secondary" data-table-status="${table.id}">
+                    Cambiar estado
+                  </button>
+                </article>`,
+            )
+            .join("")}</div>`;
+        document.querySelectorAll("[data-table-status]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const table = snapshot.tables.find(
+              (item) => item.id === button.dataset.tableStatus,
+            );
+            if (!table) return;
+            const cycle = ["free", "reserved", "occupied", "needs_cleaning"];
+            const next =
+              cycle[(cycle.indexOf(table.status) + 1) % cycle.length];
+            await enqueue("table.status_changed", table.id, table.version, {
+              status: next,
+            });
+            table.status = next;
+            table.version += 1;
+            await saveState();
+            renderHost();
+          });
+        });
+      }
+      function renderKitchen() {
+        const nextStatus = {
+          received: "preparing",
+          preparing: "ready",
+          ready: "delivered",
+        };
+        offlineContent.innerHTML = `
+          <h2>Cocina</h2>
+          <div class="grid">${snapshot.kitchenItems
+            .map(
+              (item) => `
+                <article class="card">
+                  <h3>${item.quantity} × ${escapeHtml(item.menuItemName)}</h3>
+                  <p>${escapeHtml(item.notes || "Sin notas")} · ${escapeHtml(item.status)}</p>
+                  ${
+                    nextStatus[item.status]
+                      ? `<button class="action" data-kitchen-item="${item.id}">Pasar a ${nextStatus[item.status]}</button>`
+                      : ""
+                  }
+                </article>`,
+            )
+            .join("")}</div>`;
+        document.querySelectorAll("[data-kitchen-item]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const item = snapshot.kitchenItems.find(
+              (candidate) => candidate.id === button.dataset.kitchenItem,
+            );
+            if (!item || !nextStatus[item.status]) return;
+            const next = nextStatus[item.status];
+            await enqueue(
+              "kitchen.item_status_changed",
+              item.id,
+              item.version,
+              { status: next },
+            );
+            item.status = next;
+            item.version += 1;
+            await saveState();
+            renderKitchen();
+          });
+        });
+      }
+      // Meseros trabajan por pasos: mesa, carta y confirmación. La copia local usa el mismo flujo que el POS en línea.
+      function renderService() {
+        const activeOrders = snapshot.orders || [];
+        const queued = queue.filter((event) => event.type === "order.submitted");
+        const navigation = `<nav class="screen-switch" aria-label="Meseros"><button type="button" data-service-screen="new" class="${serviceScreen === "new" ? "active" : ""}">＋ Nuevo pedido</button><button type="button" data-service-screen="orders" class="${serviceScreen === "orders" ? "active" : ""}">Mis comandas · ${activeOrders.length + queued.length}</button></nav>`;
+        if (serviceScreen === "orders") {
+          offlineContent.innerHTML = `${navigation}<div class="section-heading"><div><small>Avance de cocina · actualizado al sincronizar</small><h2>Mis comandas</h2></div></div>${activeOrders.length ? `<div class="grid">${activeOrders.map((order) => `<article class="card"><div class="section-heading"><h2>${escapeHtml(order.tableName)}</h2><span class="pill">#${order.folio}</span></div><p>${money(order.totalCents)} · ${escapeHtml(order.status)}</p>${order.items.map((line) => `<div class="order-line"><strong>${line.quantity}×</strong><div class="grow"><b>${escapeHtml(line.name)}</b>${line.notes ? `<p>Especial: ${escapeHtml(line.notes)}</p>` : ""}${line.allergy ? `<p style="color:#b91c1c"><strong>Alergia:</strong> ${escapeHtml(line.allergy)}</p>` : ""}</div><span class="pill">${escapeHtml(line.status)}</span></div>`).join("")}</article>`).join("")}` : `<article class="card"><h3>Sin comandas activas</h3><p>Los pedidos confirmados aparecerán aquí con el avance por platillo.</p></article>`}${queued.map((event) => { const table = snapshot.tables.find((item) => item.id === event.payload.table_id); const lines = Array.isArray(event.payload.items) ? event.payload.items : []; return `<article class="card" style="margin-top:12px"><div class="section-heading"><h2>${escapeHtml((table && table.name) || "Pedido local")}</h2><span class="pill">Pendiente de sincronizar</span></div>${lines.map((line) => `<div class="order-line"><strong>${line.quantity}×</strong><div class="grow"><b>${escapeHtml((((snapshot.menu.find((item) => item.id === line.menu_item_id) || {}).name) || "Producto"))}</b>${line.notes ? `<p>Especial: ${escapeHtml(line.notes)}</p>` : ""}${line.allergy_alert ? `<p style="color:#b91c1c"><strong>Alergia:</strong> ${escapeHtml(line.allergy_alert)}</p>` : ""}</div></div>`).join("")}</article>`; }).join("")}`;
+          offlineContent.querySelectorAll("[data-service-screen]").forEach((button) => button.addEventListener("click", () => { serviceScreen = button.dataset.serviceScreen; renderService(); }));
+          return;
+        }
+
+        const selectedTable = snapshot.tables.find((table) => table.id === selectedTableId);
+        const tablesHtml = snapshot.tables.map((table) => `<button type="button" class="table-button ${selectedTableId === table.id ? "selected" : ""}" data-select-table="${escapeHtml(table.id)}" ${!["free", "occupied"].includes(table.status) ? "disabled" : ""}><strong>${escapeHtml(table.name)}</strong><small>${escapeHtml(tableStatus(table.status))} · ${table.capacity} lugares</small></button>`).join("");
+        const categories = ["Todas", ...new Set(snapshot.menu.map((item) => item.categoryName || "Sin categoría").filter((name) => name !== "Todas"))];
+        const products = snapshot.menu.filter((item) => item.available && (selectedCategory === "Todas" || (item.categoryName || "Sin categoría") === selectedCategory) && `${item.name} ${item.categoryName || ""}`.toLocaleLowerCase("es-MX").includes(searchQuery.toLocaleLowerCase("es-MX")));
+        const pages = Math.max(1, Math.ceil(products.length / menuPageSize));
+        menuPage = Math.min(menuPage, pages);
+        const visibleProducts = products.slice((menuPage - 1) * menuPageSize, menuPage * menuPageSize);
+        const menuHtml = visibleProducts.map((item) => `<article class="menu-card">${item.imageUrl ? `<img class="menu-photo" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.name)}" loading="lazy">` : `<div class="menu-photo" aria-hidden="true"></div>`}<div class="menu-card-body"><h3>${escapeHtml(item.name)}</h3><p class="price">${money(item.priceCents)}</p><div class="counter"><button type="button" data-minus="${escapeHtml(item.id)}" aria-label="Quitar ${escapeHtml(item.name)}" ${!cart[item.id] ? "disabled" : ""}>−</button><strong aria-label="${cart[item.id] || 0} de ${escapeHtml(item.name)}">${cart[item.id] || 0}</strong><button type="button" data-plus="${escapeHtml(item.id)}" aria-label="Agregar ${escapeHtml(item.name)}">+</button></div>${cart[item.id] ? `<label class="line-note-label">Indicaciones<input class="line-note" data-note="${escapeHtml(item.id)}" aria-label="Nota especial para ${escapeHtml(item.name)}" maxlength="300" placeholder="Ej. sin cebolla" value="${escapeHtml(lineNotes[item.id] || "")}"></label><label class="line-note-label allergy-note-label">Alergia o restricción<input class="line-note allergy-note" data-allergy="${escapeHtml(item.id)}" aria-label="Alergia o restricción para ${escapeHtml(item.name)}" maxlength="200" placeholder="Si aplica" value="${escapeHtml(lineAllergies[item.id] || "")}"></label>` : ""}</div></article>`).join("");
+        const units = Object.values(cart).reduce((sum, value) => sum + value, 0);
+        const cents = Object.entries(cart).reduce((sum, [id, quantity]) => sum + (((snapshot.menu.find((item) => item.id === id) || {}).priceCents) || 0) * quantity, 0);
+        const stepNavigation = `<div class="screen-switch" aria-label="Pasos de la comanda"><button type="button" data-order-step="table" class="${orderStep === "table" ? "active" : ""}">1 · Mesa</button><button type="button" data-order-step="menu" class="${orderStep === "menu" ? "active" : ""}" ${!selectedTable ? "disabled" : ""}>2 · Carta</button><button type="button" data-order-step="review" class="${orderStep === "review" ? "active" : ""}" ${!units ? "disabled" : ""}>3 · Revisar (${units})</button></div>`;
+        let orderContent = "";
+        if (orderStep === "table") {
+          orderContent = `<div class="section-heading"><div><small>Paso 1 de 3 · ${snapshot.tables.filter((table) => table.status === "free").length} libres</small><h2>Selecciona una mesa</h2></div></div>${snapshot.tables.length ? `<div class="table-grid">${tablesHtml}</div>` : `<article class="card"><p>No hay mesas configuradas para esta sucursal.</p></article>`}`;
+        } else if (orderStep === "menu") {
+          orderContent = `<article class="card table-selected"><div><small>Paso 2 de 3 · Mesa seleccionada</small><h2>${escapeHtml((selectedTable && selectedTable.name) || "Elige una mesa")}</h2><p>${escapeHtml((selectedTable && selectedTable.sectionName) || "")}</p></div><button type="button" class="action secondary" data-order-step="table">Cambiar mesa</button></article><div class="section-heading"><div><small>Categorías y búsqueda</small><h2>¿Qué van a ordenar?</h2></div></div><input class="menu-search" id="menu-search" placeholder="Buscar platillo o bebida" aria-label="Buscar platillo o bebida" value="${escapeHtml(searchQuery)}"><div class="category-list" aria-label="Categorías">${categories.map((item) => `<button type="button" class="category-chip ${selectedCategory === item ? "active" : ""}" data-category="${escapeHtml(item)}">${escapeHtml(item)}</button>`).join("")}</div>${menuHtml ? `<div class="menu-cards">${menuHtml}</div>` : `<article class="card"><p>No hay productos en esta categoría o búsqueda.</p></article>`}${products.length > menuPageSize ? `<div class="screen-switch menu-pagination"><button type="button" class="secondary" data-menu-page="prev" ${menuPage <= 1 ? "disabled" : ""}>‹ Anterior</button><span>Página ${menuPage} de ${pages} · ${products.length} productos</span><button type="button" class="secondary" data-menu-page="next" ${menuPage >= pages ? "disabled" : ""}>Siguiente ›</button></div>` : ""}<section class="order-summary"><div><small>Pedido actual</small><h2>${units} artículos · ${money(cents)}</h2></div><button class="action" type="button" id="review-order" ${!units ? "disabled" : ""}>Revisar comanda</button></section>`;
+        } else {
+          const orderLines = Object.entries(cart).filter(([, quantity]) => quantity > 0).map(([id, quantity]) => {
+            const item = snapshot.menu.find((candidate) => candidate.id === id);
+            if (!item) return "";
+            return `<article class="order-line review-line"><div class="grow"><strong>${quantity} × ${escapeHtml(item.name)}</strong><p>${money(item.priceCents * quantity)}</p>${lineNotes[id] ? `<small>Indicaciones: ${escapeHtml(lineNotes[id])}</small>` : ""}${lineAllergies[id] ? `<small class="allergy-copy"><strong>Alergia:</strong> ${escapeHtml(lineAllergies[id])}</small>` : ""}</div><div class="counter"><button type="button" data-minus="${escapeHtml(id)}" aria-label="Quitar ${escapeHtml(item.name)}">−</button><strong>${quantity}</strong><button type="button" data-plus="${escapeHtml(id)}" aria-label="Agregar ${escapeHtml(item.name)}">+</button></div></article>`;
+          }).join("");
+          orderContent = `<article class="card"><div class="section-heading"><div><small>Paso 3 de 3</small><h2>Revisa antes de enviar</h2></div><strong>${escapeHtml((selectedTable && selectedTable.name) || "Mesa")}</strong></div>${orderLines}<button type="button" class="action secondary" data-order-step="menu">Volver a la carta</button></article><section class="order-summary"><label for="guest-count">Personas</label><input id="guest-count" type="number" min="1" max="50" value="${guestCount}"><label for="order-note">Nota general para cocina</label><input id="order-note" class="order-note" maxlength="500" placeholder="Ej. servir todo junto" value="${escapeHtml(orderNote)}"><div class="section-heading"><strong>Total estimado</strong><strong>${money(cents)}</strong></div><button class="action" id="save-order" ${!selectedTable || !units ? "disabled" : ""}>Confirmar y enviar comanda</button></section>`;
+        }
+        offlineContent.innerHTML = `${navigation}${stepNavigation}${orderContent}`;
+
+        offlineContent.querySelectorAll("[data-service-screen]").forEach((button) => button.addEventListener("click", () => { serviceScreen = button.dataset.serviceScreen; renderService(); }));
+        offlineContent.querySelectorAll("[data-order-step]").forEach((button) => button.addEventListener("click", () => { if (button.dataset.orderStep === "table" || (button.dataset.orderStep === "menu" && selectedTable) || (button.dataset.orderStep === "review" && units)) { orderStep = button.dataset.orderStep; renderService(); } }));
+        bindIfPresent("#menu-search", "input", (event) => { searchQuery = event.target.value; menuPage = 1; renderService(); const field = offlineContent.querySelector("#menu-search"); if (field) { field.focus(); field.setSelectionRange(searchQuery.length, searchQuery.length); } });
+        offlineContent.querySelectorAll("[data-category]").forEach((button) => button.addEventListener("click", () => { selectedCategory = button.dataset.category; menuPage = 1; renderService(); }));
+        offlineContent.querySelectorAll("[data-menu-page]").forEach((button) => button.addEventListener("click", () => { menuPage += button.dataset.menuPage === "next" ? 1 : -1; renderService(); }));
+        offlineContent.querySelectorAll("[data-select-table]").forEach((button) => button.addEventListener("click", () => { selectedTableId = button.dataset.selectTable; orderStep = "menu"; renderService(); }));
+        offlineContent.querySelectorAll("[data-plus]").forEach((button) => button.addEventListener("click", () => { cart[button.dataset.plus] = Math.min(50, (cart[button.dataset.plus] || 0) + 1); renderService(); }));
+        offlineContent.querySelectorAll("[data-minus]").forEach((button) => button.addEventListener("click", () => { cart[button.dataset.minus] = Math.max(0, (cart[button.dataset.minus] || 0) - 1); renderService(); }));
+        offlineContent.querySelectorAll("[data-note]").forEach((field) => field.addEventListener("change", () => { lineNotes[field.dataset.note] = field.value.trim(); }));
+        offlineContent.querySelectorAll("[data-allergy]").forEach((field) => field.addEventListener("change", () => { lineAllergies[field.dataset.allergy] = field.value.trim(); }));
+        bindIfPresent("#review-order", "click", () => { orderStep = "review"; renderService(); });
+        bindIfPresent("#guest-count", "change", (event) => { guestCount = Math.max(1, Math.min(50, Number(event.target.value) || 1)); });
+        bindIfPresent("#order-note", "change", (event) => { orderNote = event.target.value.trim(); });
+        bindIfPresent("#save-order", "click", async () => {
+          const orderId = createId();
+          const items = Object.entries(cart).filter(([, quantity]) => quantity > 0).map(([menuItemId, quantity]) => ({ id: createId(), menu_item_id: menuItemId, quantity, notes: lineNotes[menuItemId] || "", allergy_alert: lineAllergies[menuItemId] || "" }));
+          await enqueue("order.submitted", orderId, undefined, { table_id: selectedTableId, guest_count: guestCount, notes: orderNote, items });
+          const table = snapshot.tables.find((item) => item.id === selectedTableId);
+          if (table) table.status = "occupied";
+          cart = {};
+          Object.keys(lineNotes).forEach((key) => delete lineNotes[key]);
+          Object.keys(lineAllergies).forEach((key) => delete lineAllergies[key]);
+          orderNote = "";
+          orderStep = "table";
+          serviceScreen = "orders";
+          await saveState();
+          renderService();
+        });
+      }
+      function renderAdmin() {
+        const grouped = new Map();
+        snapshot.menu.forEach((item) => { const key = item.categoryName || "Sin categoría"; grouped.set(key, [...(grouped.get(key) || []), item]); });
+        offlineContent.innerHTML = `<div class="grid"><article class="card"><h3>${snapshot.tables.length}</h3><p>mesas configuradas</p></article><article class="card"><h3>${snapshot.menu.filter((item) => item.available).length}</h3><p>productos activos</p></article><article class="card"><h3>${(snapshot.orders && snapshot.orders.length) || 0}</h3><p>comandas en curso</p></article></div><section class="safe-panel" style="margin-top:14px"><h2>Administración protegida</h2><p>Para modificar usuarios, categorías, platillos, fotos, precios, inventario o impresoras debes reconectar al sistema central. Los cambios de configuración sin conexión no se sincronizan.</p><button class="action" id="admin-online">Abrir administración</button></section><div class="section-heading"><div><small>Vista local · solo lectura</small><h2>Carta guardada</h2></div></div>${[...grouped.entries()].map(([name, items]) => `<section class="card" style="margin-bottom:12px"><div class="section-heading"><h2>${escapeHtml(name)}</h2><small>${items.length} productos</small></div><div class="menu-cards">${items.map((item) => `<article class="menu-card">${item.imageUrl ? `<img class="menu-photo" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.name)}" loading="lazy">` : `<div class="menu-photo"></div>`}<div class="menu-card-body"><h3>${escapeHtml(item.name)}</h3><p class="price">${money(item.priceCents)}</p><span class="pill">${item.available ? "Disponible" : "Agotado"}</span></div></article>`).join("")}</div></section>`).join("")}`;
+        bindIfPresent("#admin-online", "click", () => { void connect(input.value || defaultServer); }, document);
+      }
+      function renderCashier() {
+        const orders = snapshot.orders || [];
+        offlineContent.innerHTML = `<section class="safe-panel"><span class="pill">${orders.length} cuentas recientes</span><h2 style="margin-top:12px">Caja segura</h2><p>Para cobrar, dar descuentos, cancelar partidas o imprimir ticket, reconecta con el sistema central. Así se evitan pagos duplicados y folios inconsistentes.</p><button class="action" id="cash-online">Reconectar a caja</button></section><div class="section-heading"><h2>Cuentas recientes</h2><small>Solo lectura</small></div>${orders.length ? `<div class="grid">${orders.map((order) => `<article class="card"><div class="section-heading"><h2>${escapeHtml(order.tableName)}</h2><span class="pill">#${order.folio}</span></div><p>${order.items.reduce((sum, item) => sum + item.quantity, 0)} partidas · ${escapeHtml(order.status)}</p><strong>${money(order.totalCents)}</strong></article>`).join("")}</div>` : `<article class="card"><p>No hay cuentas locales recientes. Conéctate para actualizar.</p></article>`}`;
+        bindIfPresent("#cash-online", "click", () => { void connect(input.value || defaultServer); }, document);
+      }
+      async function showOffline() {
+        const [snapshotRaw, queueRaw] = await Promise.all([
+          getValue(SNAPSHOT_KEY),
+          getValue(QUEUE_KEY),
+        ]);
+        if (!snapshotRaw) {
+          status.textContent = "";
+          error.textContent =
+            "La PC no responde y este dispositivo todavía no tiene una copia local. Conéctalo una vez con sesión iniciada.";
+          return;
+        }
+        try {
+          snapshot = JSON.parse(snapshotRaw);
+          queue = queueRaw ? JSON.parse(queueRaw) : [];
+        } catch {
+          error.textContent = "La copia local está dañada. Conecta con la PC.";
+          return;
+        }
+        setup.style.display = "none";
+        offline.style.display = "block";
+        document.querySelector("#offline-title").textContent =
+          `${currentRole === "service" ? "Meseros" : currentRole === "cashier" ? "Caja" : currentRole === "admin" ? "Administración" : "Modo local"} · ${snapshot.user.name}`;
+        document.querySelector("#offline-branch").textContent =
+          `${snapshot.user.branchName} · copia ${new Date(snapshot.capturedAt).toLocaleString("es-MX")}`;
+        queueBadge.textContent = `${queue.length} pendiente${queue.length === 1 ? "" : "s"}`;
+        if (currentRole === "service") renderService();
+        else if (currentRole === "cashier") renderCashier();
+        else if (currentRole === "kitchen") renderKitchen();
+        else if (currentRole === "host") renderHost();
+        else renderAdmin();
+      }
+      async function connect(raw, automatic = false) {
+        error.textContent = "";
+        status.textContent = "Buscando la PC principal…";
+        submit.disabled = true;
+        try {
+          let base = raw ? normalize(raw) : null;
+          if (!base || !(await verify(base))) {
+            status.textContent = "Buscando Barlovento automáticamente en el Wi-Fi…";
+            base = await discoverServer();
+            if (!base) {
+              status.textContent = "No encontramos la PC. Verifica que esté encendida, con Barlovento abierto y en el mismo Wi-Fi.";
+              if (automatic) await showOffline();
+              return;
+            }
+            input.value = base;
+          }
+          status.textContent = "PC encontrada. Sincronizando…";
+          await setValue(SERVER_KEY, base);
+          window.location.replace(base + rolePath[currentRole]);
+        } catch (reason) {
+          status.textContent = "";
+          error.textContent =
+            reason instanceof Error ? reason.message : "Dirección inválida.";
+          if (automatic) input.focus();
+        } finally {
+          submit.disabled = false;
+        }
+      }
+      async function start() {
+        currentRole = await role();
+        const saved = await getValue(SERVER_KEY);
+        void connect(saved || defaultServer, true);
+      }
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         void connect(input.value.trim());
       });
+      document.querySelector("#retry").addEventListener("click", async () => {
+        const saved = await getValue(SERVER_KEY);
+        if (saved && (await verify(saved))) {
+          window.location.replace(saved + rolePath[currentRole]);
+        } else {
+          const discovered = await discoverServer();
+          if (discovered) {
+            await setValue(SERVER_KEY, discovered);
+            window.location.replace(discovered + rolePath[currentRole]);
+          } else queueBadge.textContent = `${queue.length} pendientes · PC sin señal`;
+        }
+      });
+      void start();
     </script>
   </body>
 </html>

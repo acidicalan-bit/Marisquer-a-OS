@@ -26,7 +26,7 @@ export default async function Home() {
           </span>
           <div>
             <p className="font-semibold tracking-tight">Marisquería OS</p>
-            <p className="text-muted-foreground text-xs">Pacífico · CDMX</p>
+            <p className="text-muted-foreground text-xs">Barlovento · Marisquería</p>
           </div>
         </div>
         <Badge variant="outline" className="bg-card/70">

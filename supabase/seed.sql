@@ -78,12 +78,12 @@ select
 from generate_series(1, 12) number
 on conflict (branch_id, name) do update set capacity = excluded.capacity;
 
-insert into public.preparation_stations (id, organization_id, branch_id, name, station_type) values
-  ('70000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Cocina fría','cold_kitchen'),
-  ('70000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Cocina caliente','hot_kitchen'),
-  ('70000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Barra','bar'),
-  ('70000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Expedición','expedition')
-on conflict (branch_id, station_type) do update set name = excluded.name;
+insert into public.preparation_stations (id, organization_id, branch_id, name, station_type, sends_to_kitchen) values
+  ('70000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Cocina fría','cold_kitchen',true),
+  ('70000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Cocina caliente','hot_kitchen',true),
+  ('70000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Barra','bar',false),
+  ('70000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Expedición','expedition',true)
+on conflict (branch_id, station_type) do update set name = excluded.name, sends_to_kitchen = excluded.sends_to_kitchen;
 
 insert into public.menu_categories (id, organization_id, branch_id, name, sort_order) values
   ('80000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Aguachiles y ceviches',1),

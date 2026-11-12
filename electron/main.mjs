@@ -1,11 +1,31 @@
 import { fork } from "node:child_process";
+import dgram from "node:dgram";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { app, BrowserWindow, dialog, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 
 let serverProcess;
 let allowedOrigin;
+let discoverySocket;
+const electronDirectory = path.dirname(fileURLToPath(import.meta.url));
+
+function startDiscoveryResponder() {
+  discoverySocket = dgram.createSocket("udp4");
+  discoverySocket.on("message", (message, remote) => {
+    if (message.toString("utf8") !== "BARLOVENTO_DISCOVER_V1") return;
+    const response = Buffer.from(
+      JSON.stringify({ service: "barlovento-pos", port: 3210, version: 1 }),
+    );
+    discoverySocket.send(response, remote.port, remote.address);
+  });
+  discoverySocket.on("error", () => {
+    discoverySocket?.close();
+    discoverySocket = undefined;
+  });
+  discoverySocket.bind(3211, "0.0.0.0");
+}
 
 async function startServer() {
   if (!app.isPackaged) {
@@ -65,6 +85,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      preload: path.join(electronDirectory, "preload.mjs"),
     },
   });
   void window.loadURL(new URL("/admin", allowedOrigin).toString());
@@ -79,9 +100,39 @@ function createWindow() {
   });
 }
 
+ipcMain.handle("print-receipt", async (event) => {
+  try {
+    if (
+      !allowedOrigin ||
+      new URL(event.senderFrame.url).origin !== allowedOrigin.origin
+    )
+      return { success: false, error: "Origen de impresión no autorizado." };
+    return await new Promise((resolve) => {
+      event.sender.print(
+        {
+          silent: true,
+          printBackground: true,
+          usePrinterDefaultPageSize: true,
+        },
+        (success, failureReason) =>
+          resolve({
+            success,
+            error: success ? undefined : failureReason || "Falló la impresión.",
+          }),
+      );
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Falló la impresión.",
+    };
+  }
+});
+
 void app.whenReady().then(async () => {
   try {
     await startServer();
+    if (app.isPackaged) startDiscoveryResponder();
     createWindow();
   } catch (error) {
     dialog.showErrorBox(
@@ -96,6 +147,7 @@ void app.whenReady().then(async () => {
   });
 });
 app.on("window-all-closed", () => {
+  discoverySocket?.close();
   serverProcess?.kill();
   if (process.platform !== "darwin") app.quit();
 });

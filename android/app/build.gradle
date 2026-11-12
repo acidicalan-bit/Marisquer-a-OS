@@ -30,17 +30,11 @@ android {
             resValue "string", "app_name", "Marisquería OS Meseros"
             resValue "string", "title_activity_main", "Marisquería OS Meseros"
         }
-        kitchen {
+        cashier {
             dimension "role"
-            applicationId "mx.marisqueria.os.kitchen"
-            resValue "string", "app_name", "Marisquería OS Cocina"
-            resValue "string", "title_activity_main", "Marisquería OS Cocina"
-        }
-        host {
-            dimension "role"
-            applicationId "mx.marisqueria.os.host"
-            resValue "string", "app_name", "Marisquería OS Host"
-            resValue "string", "title_activity_main", "Marisquería OS Host"
+            applicationId "mx.marisqueria.os.cashier"
+            resValue "string", "app_name", "Marisquería OS Caja"
+            resValue "string", "title_activity_main", "Marisquería OS Caja"
         }
     }
     buildTypes {

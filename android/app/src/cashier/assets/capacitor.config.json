@@ -1,0 +1,9 @@
+{
+  "appId": "mx.marisqueria.os.cashier",
+  "appName": "Marisquería OS Caja",
+  "webDir": "mobile-shell",
+  "server": {
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  }
+}

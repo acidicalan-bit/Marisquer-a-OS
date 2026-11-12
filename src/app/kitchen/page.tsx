@@ -1,24 +1,23 @@
 import { ChefHat, Clock3, LogOut } from "lucide-react";
-import { redirect } from "next/navigation";
 
 import { updateKitchenItemStatus } from "@/app/kitchen/actions";
+import { KitchenRefreshButton } from "@/components/kitchen/kitchen-refresh-button";
 import { logoutAction } from "@/app/login/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { KITCHEN_ROLE_CODES, requireRolePage } from "@/lib/auth/role-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function KitchenPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) redirect("/login");
+  const { supabase } = await requireRolePage(KITCHEN_ROLE_CODES);
   const { data: items, error } = await supabase
     .from("order_items")
     .select(
-      "id, quantity, status, notes, allergy_alert, created_at, menu_item:menu_items(name), order:orders(folio), station:preparation_stations(name)",
+      "id, quantity, status, notes, allergy_alert, created_at, menu_item:menu_items(name), order:orders(folio), station:preparation_stations!inner(name, sends_to_kitchen)",
     )
     .in("status", ["pending", "received", "preparing", "ready"])
+    .eq("station.sends_to_kitchen", true)
     .order("created_at");
   if (error) throw error;
   const renderedAt = new Date().getTime();
@@ -29,9 +28,10 @@ export default async function KitchenPage() {
           <ChefHat className="size-5" />
         </span>
         <div className="flex-1">
-          <p className="font-semibold">Cocina en vivo</p>
-          <p className="text-xs text-white/45">Comandas sincronizadas</p>
+          <p className="font-semibold">Comandas de cocina</p>
+          <p className="text-xs text-white/45">Actualiza para ver pedidos recientes</p>
         </div>
+        <KitchenRefreshButton />
         <form action={logoutAction}>
           <Button size="icon" variant="ghost">
             <LogOut />
@@ -46,8 +46,8 @@ export default async function KitchenPage() {
               {items?.length ?? 0} preparaciones activas
             </h1>
           </div>
-          <Badge className="bg-emerald-400/15 text-emerald-300 hover:bg-emerald-400/15">
-            En tiempo real
+          <Badge className="bg-white/10 text-white/70 hover:bg-white/10">
+            Actualización manual
           </Badge>
         </div>
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

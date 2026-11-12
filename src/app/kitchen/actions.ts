@@ -3,12 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { KITCHEN_ROLE_CODES, requireRoleAction } from "@/lib/auth/role-access";
 
 export async function updateKitchenItemStatus(formData: FormData) {
-  const supabase = await createSupabaseServerClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error("Sesión requerida.");
+  const { supabase } = await requireRoleAction(KITCHEN_ROLE_CODES);
   const id = z
     .string()
     .uuid()

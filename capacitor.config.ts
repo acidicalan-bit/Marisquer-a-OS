@@ -10,13 +10,9 @@ const profiles = {
     appId: "mx.marisqueria.os.service",
     appName: "Marisquería OS Meseros",
   },
-  kitchen: {
-    appId: "mx.marisqueria.os.kitchen",
-    appName: "Marisquería OS Cocina",
-  },
-  host: {
-    appId: "mx.marisqueria.os.host",
-    appName: "Marisquería OS Host",
+  cashier: {
+    appId: "mx.marisqueria.os.cashier",
+    appName: "Marisquería OS Caja",
   },
 } as const;
 const profile = profiles[role as keyof typeof profiles] ?? profiles.admin;
