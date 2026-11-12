@@ -29,8 +29,7 @@ describe("TableFloor", () => {
     expect(screen.getByText(/no hay mesas visibles/i)).toBeInTheDocument();
   });
 
-  it("ofrece liberar una mesa pendiente de limpieza", () => {
-    const markTableCleanAction = async () => {};
+  it("no muestra una acción manual de limpieza", () => {
     render(
       <TableFloor
         tables={[
@@ -42,10 +41,9 @@ describe("TableFloor", () => {
             section: null,
           },
         ]}
-        markTableCleanAction={markTableCleanAction}
       />,
     );
 
-    expect(screen.getByRole("button", { name: /marcar mesa limpia/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /marcar mesa limpia/i })).not.toBeInTheDocument();
   });
 });

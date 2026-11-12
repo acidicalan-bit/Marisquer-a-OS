@@ -25,10 +25,8 @@ const statusLabel: Record<string, string> = {
 
 export function TableFloor({
   tables,
-  markTableCleanAction,
 }: {
   tables: RestaurantTable[];
-  markTableCleanAction?: (formData: FormData) => void | Promise<void>;
 }) {
   return (
     <Card className="lg:col-span-2">
@@ -66,17 +64,6 @@ export function TableFloor({
                   {statusLabel[table.status] ?? table.status}
                 </Badge>
                 </button>
-                {table.status === "needs_cleaning" && markTableCleanAction && (
-                  <form action={markTableCleanAction} className="mt-2">
-                    <input type="hidden" name="table_id" value={table.id} />
-                    <button
-                      type="submit"
-                      className="min-h-11 w-full rounded-xl bg-teal-900 px-3 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
-                    >
-                      Marcar mesa limpia
-                    </button>
-                  </form>
-                )}
               </div>
             ))}
           </div>

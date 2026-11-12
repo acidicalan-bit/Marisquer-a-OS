@@ -15,7 +15,6 @@ import { redirect } from "next/navigation";
 import { randomUUID } from "node:crypto";
 
 import { logoutAction } from "@/app/login/actions";
-import { markTableCleanAction } from "@/app/dashboard/actions";
 import { MenuList } from "@/components/dashboard/menu-list";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { TableFloor } from "@/components/dashboard/table-floor";
@@ -328,8 +327,8 @@ export default async function DashboardPage() {
           </TabsContent>
           <TabsContent value="orders"><WaiterOrderBoard orders={myOrders} /></TabsContent>
           <TabsContent value="checkout"><WaiterCheckoutPanel accounts={waiterAccounts} /></TabsContent>
-          <TabsContent value="floor" className="grid gap-6 lg:grid-cols-3"><TableFloor tables={tables} markTableCleanAction={markTableCleanAction} /><MenuList items={menu} /></TabsContent>
-        </Tabs> : <section className="mt-7 grid gap-6 lg:grid-cols-3"><TableFloor tables={tables} markTableCleanAction={markTableCleanAction} /><MenuList items={menu} /></section>}
+          <TabsContent value="floor" className="grid gap-6 lg:grid-cols-3"><TableFloor tables={tables} /><MenuList items={menu} /></TabsContent>
+        </Tabs> : <section className="mt-7 grid gap-6 lg:grid-cols-3"><TableFloor tables={tables} /><MenuList items={menu} /></section>}
       </div>
       <AiConcierge />
     </main>
