@@ -23,6 +23,7 @@ export async function markTableCleanAction(formData: FormData) {
     "manager",
     "captain",
     "host",
+    "waiter",
   ]);
   const tableId = uuid.parse(String(formData.get("table_id") ?? ""));
   const { data, error } = await supabase.rpc("mark_table_clean", {
