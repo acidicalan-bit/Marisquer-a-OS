@@ -249,3 +249,40 @@
     grid-template-columns: minmax(0, 1fr) !important;
   }
 }
+
+/* Administración se usa desde tabletas: todas las pestañas deben ocupar su
+   propia fila y los formularios largos deben poder desplazarse. */
+.admin-page [data-slot="tabs-list"] {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(3rem, auto);
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  align-items: stretch;
+  overflow: visible !important;
+}
+
+.admin-page [data-slot="tabs-trigger"] {
+  display: flex !important;
+  min-width: 0 !important;
+  min-height: 3rem !important;
+  height: auto !important;
+  align-items: center;
+  justify-content: center;
+  overflow-wrap: anywhere;
+  white-space: normal !important;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.admin-page [data-slot="dialog-content"] {
+  max-height: calc(100dvh - 1rem) !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+
+.admin-page [data-slot="dialog-content"] form {
+  min-height: 0;
+}

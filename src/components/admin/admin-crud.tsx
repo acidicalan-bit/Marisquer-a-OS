@@ -336,7 +336,7 @@ function EntityDialog({
             Los cambios se guardan en la sucursal activa y quedan registrados.
           </DialogDescription>
         </DialogHeader>
-        <form action={submit} className="grid gap-4 pt-2 sm:grid-cols-2">
+        <form action={submit} className="grid min-h-0 gap-4 pt-2 sm:grid-cols-2">
           <input type="hidden" name="id" value={record?.id ?? ""} />
           {fields.map((field) => (
             <AdminInput key={field.name} field={field} record={record} />

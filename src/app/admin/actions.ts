@@ -375,6 +375,7 @@ export async function saveMenuItem(formData: FormData) {
     name: shortText.parse(value(formData, "name")),
     description: value(formData, "description") || null,
     price_cents: Math.round(price * 100),
+    tax_rate_basis_points: 0,
     expected_minutes: z.coerce
       .number()
       .int()
