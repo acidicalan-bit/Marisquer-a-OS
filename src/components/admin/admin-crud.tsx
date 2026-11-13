@@ -95,12 +95,12 @@ export function AdminCrud({
   const [page, setPage] = useState(1);
   const pageSize = 12;
   const filteredRecords = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase("es-MX");
+    const normalized = normalizeSearchText(query.trim());
     return normalized
       ? records.filter((record) =>
-          `${record.title} ${record.subtitle ?? ""}`
-            .toLocaleLowerCase("es-MX")
-            .includes(normalized),
+          normalizeSearchText(`${record.title} ${record.subtitle ?? ""}`).includes(
+            normalized,
+          ),
         )
       : records;
   }, [query, records]);
@@ -267,6 +267,13 @@ export function AdminCrud({
       )}
     </section>
   );
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .toLocaleLowerCase("es-MX")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function EntityDialog({
