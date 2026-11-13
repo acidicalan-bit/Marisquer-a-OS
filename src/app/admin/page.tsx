@@ -467,7 +467,7 @@ export default async function AdminPage() {
         <ConnectionAddress addresses={serverAddresses} />
         <Tabs defaultValue="brand" className="space-y-6">
           <ShiftControl shift={currentShift.data} />
-          <TabsList className="h-auto w-full [scrollbar-width:none] justify-start gap-1 overflow-x-auto rounded-2xl border border-white bg-white/80 p-1.5 shadow-sm [&::-webkit-scrollbar]:hidden">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-2 overflow-visible rounded-2xl border border-white bg-white/80 p-2 shadow-sm lg:grid-cols-4">
             <TabsTrigger value="brand" className="rounded-xl px-4 py-2.5">
               <Sparkles /> Marca
             </TabsTrigger>
@@ -504,7 +504,7 @@ export default async function AdminPage() {
           </TabsContent>
           <TabsContent value="menu" className="space-y-6">
             <Tabs defaultValue="dishes" className="space-y-5">
-              <TabsList className="grid h-auto w-full max-w-xl grid-cols-2 rounded-2xl bg-white p-1.5 shadow-sm">
+              <TabsList className="grid h-auto w-full max-w-xl grid-cols-2 gap-2 rounded-2xl bg-white p-2 shadow-sm">
                 <TabsTrigger
                   value="dishes"
                   className="min-h-12 rounded-xl font-semibold"

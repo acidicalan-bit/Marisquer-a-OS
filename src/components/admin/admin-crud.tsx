@@ -157,7 +157,7 @@ export function AdminCrud({
           {visibleRecords.map((record) => (
             <article
               key={record.id}
-              className="group flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-3.5 transition hover:-translate-y-0.5 hover:border-teal-100 hover:shadow-lg hover:shadow-teal-950/5"
+              className="group flex min-w-0 items-start gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 transition hover:-translate-y-0.5 hover:border-teal-100 hover:shadow-lg hover:shadow-teal-950/5 sm:items-center"
             >
               {record.image_url ? (
                 <Image
@@ -173,8 +173,8 @@ export function AdminCrud({
                   {record.title.slice(0, 1).toUpperCase()}
                 </div>
               )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-slate-900">
+              <div className="min-w-0 flex-1 pt-1 sm:pt-0">
+                <p className="break-words font-medium text-slate-900 sm:truncate">
                   {record.title}
                 </p>
                 {record.subtitle && (
@@ -183,7 +183,7 @@ export function AdminCrud({
                   </p>
                 )}
               </div>
-              <div className="flex gap-1 opacity-70 transition group-hover:opacity-100">
+              <div className="flex shrink-0 gap-1 opacity-70 transition group-hover:opacity-100">
                 <EntityDialog
                   label="Editar"
                   fields={fields}

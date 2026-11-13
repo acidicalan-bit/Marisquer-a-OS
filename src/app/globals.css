@@ -261,12 +261,28 @@
   min-height: 0 !important;
   align-items: stretch;
   overflow: visible !important;
+  position: relative;
+  z-index: 2;
+  align-content: stretch;
+}
+
+.admin-page [data-slot="tabs"] {
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-page [data-slot="tabs-content"] {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  margin-top: 0.5rem;
 }
 
 .admin-page [data-slot="tabs-trigger"] {
   display: flex !important;
   min-width: 0 !important;
   min-height: 3rem !important;
+  width: 100% !important;
   height: auto !important;
   align-items: center;
   justify-content: center;
@@ -274,6 +290,7 @@
   white-space: normal !important;
   line-height: 1.15;
   text-align: center;
+  padding: 0.7rem 0.55rem !important;
 }
 
 .admin-page [data-slot="dialog-content"] {
@@ -285,4 +302,47 @@
 
 .admin-page [data-slot="dialog-content"] form {
   min-height: 0;
+  min-width: 0;
+}
+
+.admin-page [data-slot="dialog-content"] {
+  width: calc(100% - 1rem) !important;
+}
+
+.admin-page article {
+  min-width: 0;
+}
+
+.admin-page article > div {
+  min-width: 0;
+}
+
+.cash-page [data-slot="tabs-list"] {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(3rem, auto);
+  width: 100% !important;
+  height: auto !important;
+  gap: 0.35rem !important;
+}
+
+.cash-page [data-slot="tabs-trigger"] {
+  min-width: 0 !important;
+  min-height: 3rem !important;
+  height: auto !important;
+  padding: 0.65rem 0.45rem !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+  text-align: center;
+}
+
+@media (min-width: 900px) {
+  .admin-page > div > [data-slot="tabs"] > [data-slot="tabs-list"] {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .cash-page [data-slot="tabs-list"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
 }

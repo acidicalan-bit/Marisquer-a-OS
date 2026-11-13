@@ -25,6 +25,13 @@ export default async function CashPage() {
     shiftResult,
     sessionsResult,
     receiptsResult,
+    todayReceiptsResult,
+    todayPaymentsResult,
+    pastOrdersResult,
+    waitersResult,
+    shiftsHistoryResult,
+    shiftPaymentsHistoryResult,
+    cashRegistersResult,
   ] = await Promise.all([
     supabase
       .from("user_profiles")
@@ -46,13 +53,65 @@ export default async function CashPage() {
       .from("receipts")
       .select("id, folio, total_cents, issued_at")
       .order("issued_at", { ascending: false })
-      .limit(8),
+      .limit(20),
+    supabase
+      .from("receipts")
+      .select(
+        "id, folio, subtotal_cents, tax_cents, discount_cents, tip_cents, total_cents, payload, issued_at, session:table_sessions(waiter_id, table:tables(name))",
+      )
+      .gte("issued_at", dayRange.start)
+      .lt("issued_at", dayRange.end)
+      .order("issued_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("payments")
+      .select(
+        "id, method, amount_cents, paid_at, table_session_id, session:table_sessions(table:tables(name))",
+      )
+      .eq("status", "completed")
+      .gte("paid_at", dayRange.start)
+      .lt("paid_at", dayRange.end)
+      .order("paid_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("orders")
+      .select(
+        "id, folio, status, subtotal_cents, tax_cents, total_cents, waiter_id, submitted_at, closed_at, created_at, session:table_sessions(table:tables(name)), items:order_items(quantity, status, notes, allergy_alert, menu_item:menu_items(name))",
+      )
+      .neq("status", "draft")
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase.from("user_profiles").select("id, full_name").order("full_name"),
+    supabase
+      .from("shifts")
+      .select("id, name, opened_at, closed_at, status")
+      .order("opened_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("payments")
+      .select("id, shift_id, method, amount_cents, paid_at, status")
+      .eq("status", "completed")
+      .order("paid_at", { ascending: false })
+      .limit(500),
+    supabase
+      .from("cash_registers")
+      .select("id, shift_id, opening_amount_cents, closing_amount_cents, expected_amount_cents, status, opened_at, closed_at")
+      .order("opened_at", { ascending: false })
+      .limit(20),
   ]);
   const failed = [
     profileResult,
     shiftResult,
     sessionsResult,
     receiptsResult,
+    todayReceiptsResult,
+    todayPaymentsResult,
+    pastOrdersResult,
+    waitersResult,
+    shiftsHistoryResult,
+    shiftPaymentsHistoryResult,
+    cashRegistersResult,
   ].find((result) => result.error);
   if (failed?.error)
     throw new Error(`No se pudo cargar caja: ${failed.error.message}`);
@@ -119,9 +178,120 @@ export default async function CashPage() {
   const profile = profileResult.data;
   const shift = shiftResult.data;
   const branchName = relationName(profile.branch) ?? "Sucursal";
+  const dailyReceipts = (todayReceiptsResult.data ?? []).map((receipt) => {
+    const payload = recordValue(receipt.payload);
+    return {
+      id: receipt.id,
+      folio: receipt.folio,
+      tableName: relationName(
+        (receipt as { session?: unknown }).session &&
+          (receipt as { session?: { table?: unknown } }).session?.table,
+      ) ?? "Mostrador",
+      waiterId: String(
+        ((receipt as { session?: { waiter_id?: string } }).session?.waiter_id ?? ""),
+      ),
+      subtotalCents: Number(receipt.subtotal_cents),
+      taxCents: Number(receipt.tax_cents),
+      discountCents: Number(receipt.discount_cents),
+      tipCents: Number(receipt.tip_cents),
+      totalCents: Number(receipt.total_cents),
+      method: paymentMethodName(payload.payment_method),
+      issuedAt: receipt.issued_at,
+    };
+  });
+  const dailyPayments = (todayPaymentsResult.data ?? []).map((payment) => ({
+    id: payment.id,
+    method: paymentMethodName(payment.method),
+    amountCents: Number(payment.amount_cents),
+    tableName: relationName(
+      (payment as { session?: unknown }).session &&
+        (payment as { session?: { table?: unknown } }).session?.table,
+    ) ?? "Mostrador",
+    paidAt: payment.paid_at,
+  }));
+  const waiterNames = new Map(
+    (waitersResult.data ?? []).map((waiter) => [waiter.id, waiter.full_name]),
+  );
+  const waiterSales = dailyReceipts.reduce<Record<string, { name: string; totalCents: number; receipts: number }>>(
+    (result, receipt) => {
+      const key = receipt.waiterId || "unassigned";
+      const current = result[key] ?? {
+        name: waiterNames.get(key) ?? "Sin mesero asignado",
+        totalCents: 0,
+        receipts: 0,
+      };
+      current.totalCents += receipt.totalCents;
+      current.receipts += 1;
+      result[key] = current;
+      return result;
+    },
+    {},
+  );
+  const pastOrders = (pastOrdersResult.data ?? []).map((order) => ({
+    id: order.id,
+    folio: Number(order.folio),
+    status: order.status,
+    totalCents: Number(order.total_cents),
+    waiterName: waiterNames.get(order.waiter_id) ?? "Mesero no identificado",
+    tableName: relationName(
+      (order as { session?: { table?: unknown } }).session?.table,
+    ) ?? "Mostrador",
+    createdAt: order.created_at,
+    closedAt: order.closed_at,
+    items: Array.isArray(order.items)
+      ? order.items.map((item) => ({
+          quantity: Number(item.quantity),
+          name: relationName(item.menu_item) ?? "Producto",
+          status: item.status,
+        }))
+      : [],
+  }));
+  const shiftsHistory = (shiftsHistoryResult.data ?? []).map((shift) => {
+    const shiftPayments = (shiftPaymentsHistoryResult.data ?? []).filter(
+      (payment) => payment.shift_id === shift.id,
+    );
+    const register = (cashRegistersResult.data ?? []).find(
+      (candidate) => candidate.shift_id === shift.id,
+    );
+    const salesCents = shiftPayments.reduce(
+      (sum, payment) => sum + Number(payment.amount_cents),
+      0,
+    );
+    const byMethod = shiftPayments.reduce<Record<string, number>>(
+      (result, payment) => {
+        const method = paymentMethodName(payment.method);
+        result[method] = (result[method] ?? 0) + Number(payment.amount_cents);
+        return result;
+      },
+      {},
+    );
+    return {
+      id: shift.id,
+      name: shift.name,
+      status: shift.status,
+      openedAt: shift.opened_at,
+      closedAt: shift.closed_at,
+      salesCents,
+      payments: shiftPayments.length,
+      byMethod,
+      openingCents: Number(register?.opening_amount_cents ?? 0),
+      closingCents: register?.closing_amount_cents == null ? null : Number(register.closing_amount_cents),
+      expectedCents: register?.expected_amount_cents == null ? null : Number(register.expected_amount_cents),
+    };
+  });
+  const dailyTotals = dailyReceipts.reduce(
+    (totals, receipt) => ({
+      subtotalCents: totals.subtotalCents + receipt.subtotalCents,
+      taxCents: totals.taxCents + receipt.taxCents,
+      discountCents: totals.discountCents + receipt.discountCents,
+      tipCents: totals.tipCents + receipt.tipCents,
+      totalCents: totals.totalCents + receipt.totalCents,
+    }),
+    { subtotalCents: 0, taxCents: 0, discountCents: 0, tipCents: 0, totalCents: 0 },
+  );
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-20">
+    <main className="cash-page min-h-screen bg-slate-50 pb-20">
       <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex h-17 max-w-7xl items-center gap-3 px-4 sm:px-6">
           <Button
@@ -157,6 +327,14 @@ export default async function CashPage() {
             <TabsTrigger value="tickets" className="min-h-12 rounded-xl font-semibold">Tickets</TabsTrigger>
           </TabsList>
           <TabsContent value="register" className="space-y-4">
+        <SalesSummary
+          receipts={dailyReceipts}
+          payments={dailyPayments}
+          totals={dailyTotals}
+            waiterSales={Object.values(waiterSales).sort((a, b) => b.totalCents - a.totalCents)}
+            pastOrders={pastOrders}
+            shifts={shiftsHistory}
+        />
         <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
           <Card>
             <CardHeader>
@@ -293,6 +471,251 @@ function relationName(value: unknown) {
   return relation && typeof relation === "object" && "name" in relation
     ? String(relation.name)
     : null;
+}
+
+const mexicoCityTimeZone = "America/Mexico_City";
+
+function getTodayRange() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: mexicoCityTimeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const date = `${values.year}-${values.month}-${values.day}`;
+  const start = new Date(`${date}T00:00:00-06:00`);
+  const end = new Date(start.getTime() + 86_400_000);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
+const dayRange = getTodayRange();
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function paymentMethodName(value: unknown) {
+  const names: Record<string, string> = {
+    cash: "Efectivo",
+    card: "Tarjeta",
+    transfer: "Transferencia",
+    other: "Otro",
+  };
+  return names[String(value ?? "other")] ?? "Otro";
+}
+
+type DailyReceipt = {
+  id: string;
+  folio: string;
+  tableName: string;
+  waiterId: string;
+  subtotalCents: number;
+  taxCents: number;
+  discountCents: number;
+  tipCents: number;
+  totalCents: number;
+  method: string;
+  issuedAt: string;
+};
+
+type DailyPayment = {
+  id: string;
+  method: string;
+  amountCents: number;
+  tableName: string;
+  paidAt: string | null;
+};
+
+function SalesSummary({
+  receipts,
+  payments,
+  totals,
+  waiterSales,
+  pastOrders,
+  shifts,
+}: {
+  receipts: DailyReceipt[];
+  payments: DailyPayment[];
+  totals: {
+    subtotalCents: number;
+    taxCents: number;
+    discountCents: number;
+    tipCents: number;
+    totalCents: number;
+  };
+  waiterSales: { name: string; totalCents: number; receipts: number }[];
+  pastOrders: {
+    id: string;
+    folio: number;
+    status: string;
+    totalCents: number;
+    waiterName: string;
+    tableName: string;
+    createdAt: string;
+    closedAt: string | null;
+    items: { quantity: number; name: string; status: string }[];
+  }[];
+  shifts: {
+    id: string;
+    name: string;
+    status: string;
+    openedAt: string;
+    closedAt: string | null;
+    salesCents: number;
+    payments: number;
+    byMethod: Record<string, number>;
+    openingCents: number;
+    closingCents: number | null;
+    expectedCents: number | null;
+  }[];
+}) {
+  const byMethod = payments.reduce<Record<string, number>>((result, payment) => {
+    result[payment.method] = (result[payment.method] ?? 0) + payment.amountCents;
+    return result;
+  }, {});
+  const time = new Intl.DateTimeFormat("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: mexicoCityTimeZone,
+  });
+  const dateTime = new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: mexicoCityTimeZone,
+  });
+  return (
+    <div className="space-y-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <CashMetric icon={Banknote} label="Ventas de hoy" value={formatMoney(totals.totalCents)} />
+        <CashMetric icon={ReceiptText} label="Cuentas cobradas" value={String(receipts.length)} />
+        <CashMetric icon={CircleDollarSign} label="Descuentos" value={formatMoney(totals.discountCents)} />
+        <CashMetric icon={Banknote} label="Propinas" value={formatMoney(totals.tipCents)} />
+      </section>
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[.8fr_1.2fr]">
+        <Card className="min-w-0">
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Desglose de ventas</h2>
+            <p className="text-sm text-slate-500">Cobros completados del día, por método de pago.</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {Object.entries(byMethod).length ? Object.entries(byMethod).map(([method, amount]) => (
+              <div key={method} className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-3">
+                <span className="truncate text-sm font-medium">{method}</span>
+                <span className="shrink-0 font-semibold text-teal-800">{formatMoney(amount)}</span>
+              </div>
+            )) : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Todavía no hay cobros registrados hoy.</p>}
+            <div className="flex items-center justify-between border-t pt-3 text-sm font-semibold">
+              <span>Total sin impuesto adicional</span>
+              <span>{formatMoney(totals.subtotalCents)}</span>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="min-w-0">
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Cuentas pasadas</h2>
+            <p className="text-sm text-slate-500">Tickets cobrados hoy, del más reciente al más antiguo.</p>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {receipts.length ? receipts.map((receipt) => (
+              <Link key={receipt.id} href={`/cash/receipt/${receipt.id}`} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border p-3 transition hover:border-teal-300">
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{receipt.tableName} · {receipt.folio}</span>
+                  <span className="block truncate text-xs text-slate-500">{receipt.method} · {time.format(new Date(receipt.issuedAt))}</span>
+                </span>
+                <span className="shrink-0 font-semibold text-teal-800">{formatMoney(receipt.totalCents)}</span>
+              </Link>
+            )) : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No hay cuentas cobradas hoy.</p>}
+          </CardContent>
+        </Card>
+      </div>
+      <Card className="min-w-0">
+        <CardHeader>
+          <h2 className="text-xl font-semibold">Historial de ventas del día</h2>
+          <p className="text-sm text-slate-500">Cada cobro confirmado, con mesa, hora y método.</p>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {payments.length ? payments.map((payment) => (
+            <div key={payment.id} className="flex min-w-0 items-center justify-between gap-3 border-b py-3 last:border-0">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{payment.tableName}</p>
+                <p className="truncate text-xs text-slate-500">{payment.method} · {payment.paidAt ? time.format(new Date(payment.paidAt)) : "Hora no disponible"}</p>
+              </div>
+              <span className="shrink-0 font-semibold">{formatMoney(payment.amountCents)}</span>
+            </div>
+          )) : <p className="py-4 text-sm text-slate-500">No hay cobros confirmados hoy.</p>}
+        </CardContent>
+      </Card>
+      <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+        <Card className="min-w-0">
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Ventas por mesero</h2>
+            <p className="text-sm text-slate-500">Cuentas cobradas hoy, agrupadas por el mesero de la mesa.</p>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {waiterSales.length ? waiterSales.map((waiter) => (
+              <div key={waiter.name} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border p-3">
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{waiter.name}</span>
+                  <span className="block text-xs text-slate-500">{waiter.receipts} cuenta{waiter.receipts === 1 ? "" : "s"}</span>
+                </span>
+                <span className="shrink-0 font-semibold text-teal-800">{formatMoney(waiter.totalCents)}</span>
+              </div>
+            )) : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No hay ventas asignadas a meseros hoy.</p>}
+          </CardContent>
+        </Card>
+        <Card className="min-w-0">
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Ventas por turno</h2>
+            <p className="text-sm text-slate-500">Resumen financiero de los últimos turnos registrados.</p>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {shifts.length ? shifts.map((shift) => (
+              <details key={shift.id} className="rounded-xl border p-3">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">{shift.name}</span>
+                    <span className="block truncate text-xs text-slate-500">{dateTime.format(new Date(shift.openedAt))} · {shift.payments} cobros · {shift.status === "open" ? "Abierto" : "Cerrado"}</span>
+                  </span>
+                  <span className="shrink-0 font-semibold text-teal-800">{formatMoney(shift.salesCents)}</span>
+                </summary>
+                <div className="mt-3 grid gap-2 border-t pt-3 text-sm sm:grid-cols-2">
+                  <p>Fondo inicial: <strong>{formatMoney(shift.openingCents)}</strong></p>
+                  <p>Esperado: <strong>{shift.expectedCents == null ? "Pendiente" : formatMoney(shift.expectedCents)}</strong></p>
+                  <p>Cierre contado: <strong>{shift.closingCents == null ? "Pendiente" : formatMoney(shift.closingCents)}</strong></p>
+                  <p className="sm:col-span-2">{Object.entries(shift.byMethod).map(([method, amount]) => `${method}: ${formatMoney(amount)}`).join(" · ") || "Sin desglose"}</p>
+                </div>
+              </details>
+            )) : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No hay turnos registrados.</p>}
+          </CardContent>
+        </Card>
+      </div>
+      <Card className="min-w-0">
+        <CardHeader>
+          <h2 className="text-xl font-semibold">Comandas pasadas</h2>
+          <p className="text-sm text-slate-500">Consulta folio, mesa, mesero, estado y productos de las comandas recientes.</p>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {pastOrders.length ? pastOrders.map((order) => (
+            <details key={order.id} className="rounded-xl border p-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">Comanda #{order.folio} · {order.tableName}</span>
+                  <span className="block truncate text-xs text-slate-500">{order.waiterName} · {dateTime.format(new Date(order.closedAt ?? order.createdAt))} · {order.status}</span>
+                </span>
+                <span className="shrink-0 font-semibold">{formatMoney(order.totalCents)}</span>
+              </summary>
+              <div className="mt-3 space-y-1 border-t pt-3 text-sm">
+                {order.items.length ? order.items.map((item, index) => <p key={`${order.id}-${index}`} className="flex justify-between gap-3"><span className="min-w-0 truncate">{item.quantity}× {item.name}</span><span className="shrink-0 text-slate-500">{item.status}</span></p>) : <p className="text-slate-500">Sin detalle de productos.</p>}
+              </div>
+            </details>
+          )) : <p className="py-4 text-sm text-slate-500">No hay comandas pasadas para mostrar.</p>}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 function CashMetric({
