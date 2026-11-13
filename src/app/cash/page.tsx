@@ -35,7 +35,9 @@ export default async function CashPage() {
   ] = await Promise.all([
     supabase
       .from("user_profiles")
-      .select("full_name, branch_id, branch:branches(name)")
+      .select(
+        "full_name, branch_id, branch:branches!user_profiles_branch_organization_fkey(name)",
+      )
       .eq("id", user.id)
       .single(),
     supabase
