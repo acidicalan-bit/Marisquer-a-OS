@@ -57,6 +57,7 @@ export default async function DashboardPage() {
     cashPermissionResult,
     paymentPermissionResult,
     recommendationResult,
+    lastPaymentResult,
   ] = await Promise.all([
     supabase
       .from("user_profiles")
@@ -91,6 +92,14 @@ export default async function DashboardPage() {
       requested_start: recommendationStart.toISOString(),
       requested_end: recommendationEnd.toISOString(),
     }),
+    supabase
+      .from("payments")
+      .select("table_session_id, method, amount_cents, paid_at")
+      .eq("received_by", auth.user.id)
+      .eq("status", "completed")
+      .order("paid_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (profileResult.error || tablesResult.error || menuResult.error || ordersResult.error) {
@@ -118,6 +127,27 @@ export default async function DashboardPage() {
       status: String(account.session_status),
       dueCents: Number(account.due_cents),
     }));
+
+  const lastReceiptResult = lastPaymentResult.data
+    ? await supabase
+        .from("receipts")
+        .select(
+          "id, folio, total_cents, issued_at, session:table_sessions(table:tables(name))",
+        )
+        .eq("table_session_id", lastPaymentResult.data.table_session_id)
+        .maybeSingle()
+    : { data: null, error: null };
+  const lastPayment = lastPaymentResult.data;
+  const lastReceipt = lastReceiptResult.data;
+  const lastSale = lastPayment && lastReceipt
+    ? {
+        folio: String(lastReceipt.folio),
+        tableName: relationName(relation(lastReceipt.session)?.table) ?? "Mesa",
+        totalCents: Number(lastReceipt.total_cents),
+        method: paymentMethodLabel(lastPayment.method),
+        paidAt: lastReceipt.issued_at,
+      }
+    : null;
 
   const profile = profileResult.data;
   const tables = (tablesResult.data ?? []).map((table) => ({
@@ -326,7 +356,7 @@ export default async function DashboardPage() {
             <WaiterOrderComposer tables={orderTables} menu={orderMenu} initialOrderId={randomUUID()} initialEventId={randomUUID()} deviceId={randomUUID()} />
           </TabsContent>
           <TabsContent value="orders"><WaiterOrderBoard orders={myOrders} /></TabsContent>
-          <TabsContent value="checkout"><WaiterCheckoutPanel accounts={waiterAccounts} /></TabsContent>
+          <TabsContent value="checkout"><WaiterCheckoutPanel accounts={waiterAccounts} lastSale={lastSale} /></TabsContent>
           <TabsContent value="floor" className="grid gap-6 lg:grid-cols-3"><TableFloor tables={tables} /><MenuList items={menu} /></TabsContent>
         </Tabs> : <section className="mt-7 grid gap-6 lg:grid-cols-3"><TableFloor tables={tables} /><MenuList items={menu} /></section>}
       </div>
@@ -355,4 +385,14 @@ function relation(value: unknown): Record<string, unknown> | null {
 
 function relationName(value: unknown): string | null {
   return typeof relation(value)?.name === "string" ? String(relation(value)?.name) : null;
+}
+
+function paymentMethodLabel(value: unknown) {
+  const labels: Record<string, string> = {
+    cash: "Efectivo",
+    card: "Tarjeta",
+    transfer: "Transferencia",
+    other: "Otro",
+  };
+  return labels[String(value ?? "other")] ?? "Otro";
 }

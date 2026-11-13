@@ -17,6 +17,14 @@ export type WaiterAccount = {
   dueCents: number;
 };
 
+export type WaiterLastSale = {
+  folio: string;
+  tableName: string;
+  totalCents: number;
+  method: string;
+  paidAt: string;
+};
+
 const initialState: WaiterOrderState = {};
 const currency = new Intl.NumberFormat("es-MX", {
   style: "currency",
@@ -25,8 +33,10 @@ const currency = new Intl.NumberFormat("es-MX", {
 
 export function WaiterCheckoutPanel({
   accounts,
+  lastSale,
 }: {
   accounts: WaiterAccount[];
+  lastSale?: WaiterLastSale | null;
 }) {
   return (
     <section aria-labelledby="waiter-checkout-title" className="space-y-4">
@@ -41,6 +51,7 @@ export function WaiterCheckoutPanel({
           Registra el pago en la mesa. El cobro se confirma en el servidor y queda ligado al turno abierto por administración.
         </p>
       </div>
+      {lastSale && <LastSaleCard sale={lastSale} />}
       {accounts.length ? (
         <div className="grid gap-4 xl:grid-cols-2">
           {accounts.map((account) => (
@@ -53,6 +64,26 @@ export function WaiterCheckoutPanel({
         </div>
       )}
     </section>
+  );
+}
+
+function LastSaleCard({ sale }: { sale: WaiterLastSale }) {
+  const paidAt = new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Mexico_City",
+  }).format(new Date(sale.paidAt));
+  return (
+    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4" aria-live="polite">
+      <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800">Último pedido cobrado</p>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-semibold text-emerald-950">{sale.tableName} · {sale.folio}</p>
+          <p className="text-sm text-emerald-900/75">{paidAt} · {sale.method}</p>
+        </div>
+        <strong className="text-lg text-emerald-950">{currency.format(sale.totalCents / 100)}</strong>
+      </div>
+    </div>
   );
 }
 
